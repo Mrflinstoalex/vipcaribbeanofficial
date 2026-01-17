@@ -19,9 +19,7 @@ const Partners = ({ data }: { data: AliadosProps }) => {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <p className="text-primary font-medium mb-4">Nuestros Aliados</p>
           <TituloConHighlight texto={data.titulo} highlight="Asociadas" />
-          <p className="text-lg text-muted-foreground">
-            {data.descripcion}
-          </p>
+          <p className="text-lg text-muted-foreground">{data.descripcion}</p>
         </div>
 
         {/* Cruise Lines Grid */}
@@ -33,14 +31,16 @@ const Partners = ({ data }: { data: AliadosProps }) => {
             >
               <div className="flex flex-col items-center text-center gap-4">
                 {/* Logo container */}
-                <div className="w-20 h-20 rounded-full bg-secondary overflow-hidden flex items-center justify-center">
+<div className="flex items-center justify-center h-28">
   <img
     src={cruise.logo}
     alt={cruise.nombre}
-    className="w-full h-full object-cover"
+    className="max-h-24 lg:max-h-28 w-auto object-contain"
     loading="lazy"
   />
 </div>
+
+
 
                 <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
                   {cruise.nombre}
@@ -48,9 +48,9 @@ const Partners = ({ data }: { data: AliadosProps }) => {
               </div>
 
               {/* Optional badge */}
-              <div className="absolute -top-2 -right-2 bg-gradient-coral text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
-                ALIADO
-              </div>
+             <div className="absolute top-4 right-4 text-[10px] font-medium px-2 py-1 rounded-full bg-secondary text-muted-foreground border border-border">
+  Partner
+</div>
             </div>
           ))}
         </div>
