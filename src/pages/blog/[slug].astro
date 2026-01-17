@@ -6,7 +6,6 @@ export const prerender = false;
 
 import {
 getAllBlogArticles,
-  getAllBlogArticlesSlugs,
   getBlogArticleBySlug,
 } from "@/lib/wp";
 export interface BlogCategory {
@@ -30,17 +29,13 @@ export interface BlogArticle {
   orden?: number;
 }
 
-export async function getStaticPaths() {
-  const slugs = await getAllBlogArticlesSlugs();
 
-  return slugs.map((slug) => ({
-    params: { slug },
-  }));
-}
 
 
 const { slug } = Astro.params;
-
+if (!slug) {
+  throw new Error("Missing slug parameter");
+}
 
 let article: BlogArticle | null = null;
 let hasError = false;

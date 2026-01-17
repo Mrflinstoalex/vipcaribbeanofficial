@@ -22,9 +22,7 @@ import { getPageInfo, getUrgentEmpleos } from "@/lib/wp";
 
 export const prerender = false;
 
-/* --------------------------------------------------
-   SAFE DATA FETCH
--------------------------------------------------- */
+
 
 let landingpageinfo: any = null;
 let empleosUrgentes: any[] = [];
@@ -41,15 +39,11 @@ try {
   console.error("Error getUrgentEmpleos:", error);
 }
 
-/* --------------------------------------------------
-   FALLBACKS (NUNCA undefined)
--------------------------------------------------- */
+
 
 const acf = landingpageinfo?.acf ?? {};
 
-/* --------------------------------------------------
-   DATA OBJECTS SEGUROS
--------------------------------------------------- */
+
 
 const HeroData = {
   titulo: acf.hero_title ?? "",
@@ -174,9 +168,9 @@ const ProcessData = {
 
 <Layout>
   {HeroData.titulo && <Hero data={HeroData} />}
+    {empleosUrgentes.length > 0 && <UrgentJobs data={empleosUrgentes} />}
   {ServicesData.servicios.length > 0 && <Services data={ServicesData} />}
   {AliadosData.aliados.length > 0 && <Partners data={AliadosData} />}
-  {empleosUrgentes.length > 0 && <UrgentJobs data={empleosUrgentes} />}
   {ProcessData.pasos.length > 0 && <Process data={ProcessData} />}
 
   <AppointmentSection />

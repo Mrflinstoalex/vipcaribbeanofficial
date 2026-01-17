@@ -2,20 +2,7 @@
 const domain = import.meta.env.WP_DOMAIN
 const apiUrl = `${domain}/wp-json/wp/v2`
 
-//const apiUrl = domain ? `${domain}/wp-json/wp/v2` : null;
-/*
-const safeFetch = async (url: string) => {
-  try {
-    const res = await fetch(url, {
-      headers: { Accept: "application/json", "User-Agent": "astro-vercel" },
-    });
-    return res;
-  } catch (e: any) {
-    // Esto pasa cuando el servidor está caído / DNS / SSL / etc.
-    console.error("WP fetch network error:", url, e?.message ?? e);
-    return null;
-  }
-};*/
+
 
 
 export const getPageInfo = async (slug: string) => {

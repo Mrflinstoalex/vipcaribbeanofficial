@@ -3,15 +3,14 @@ export const prerender = false;
 
 import Layout from "@/layouts/Layout.astro";
 import EmpleoDetalle from "@/components/pages/EmpleoDetalle";
-import { getAllEmpleosSlugs } from "@/lib/wp";
 import { getEmpleoBySlug } from "@/lib/wp";
 
-export async function getStaticPaths() {
-  const slugs = await getAllEmpleosSlugs();
-  return slugs.map((slug: string) => ({ params: { slug } }));
-}
+
 
 const { slug } = Astro.params;
+if (!slug) {
+  throw new Error("Missing slug parameter");
+}
 
 let empleo: any = null;
 let error: string | null = null;
