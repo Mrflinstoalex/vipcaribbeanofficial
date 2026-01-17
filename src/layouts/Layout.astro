@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import "../styles/global.css";
 import HeaderWrapper from "@/components/HeaderWrapper.astro";
 import Analytics from "@vercel/analytics/astro";
+import  SpeedInsights  from "@vercel/speed-insights/astro"
 import { getPageInfo } from "@/lib/wp";
 import {
   ClientRouter
@@ -83,6 +84,7 @@ const footerPage = await getPageInfo("footer");
     </div>
     <!-- Si quieres cargar un script, Astro recomienda: -->
     <!-- <script type="module" src="/src/main.tsx"></script> -->
+    <SpeedInsights/>
     <Analytics />
   </body>
 </html>
