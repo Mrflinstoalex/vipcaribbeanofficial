@@ -3,19 +3,71 @@ import Footer from "@/components/Footer";
 import "../styles/global.css";
 import HeaderWrapper from "@/components/HeaderWrapper.astro";
 import Analytics from "@vercel/analytics/astro";
-import  SpeedInsights  from "@vercel/speed-insights/astro"
+import SpeedInsights from "@vercel/speed-insights/astro";
 import { getPageInfo } from "@/lib/wp";
-import {
-  ClientRouter
-} from 'astro:transitions';
+import { ClientRouter } from "astro:transitions";
+
 const footerPage = await getPageInfo("footer");
+
+// Dominio base (SIN slash final)
+const SITE_URL =
+  import.meta.env.SITE_URL?.replace(/\/$/, "") ||
+  "https://www.vipcaribbeanoffice.com";
+
+// Open Graph Image (debe existir en /public)
+const OG_IMAGE = `${SITE_URL}/og-vipcaribbean.png`;
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es-DO">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={SITE_URL} />
+
+    <!-- SEO -->
+    <title>Trabajo en Cruceros | Agencia de Empleo en RD – VIP Caribbean</title>
+    <meta
+      name="description"
+      content="Consigue trabajo en cruceros con VIP Caribbean, la agencia líder en República Dominicana. Vacantes en Disney Cruise Line, Virgin Voyages, Costa y más. Aplica hoy."
+    />
+    <meta name="author" content="VIP Caribbean" />
+    <meta
+      name="keywords"
+      content="trabajo en cruceros, empleo en cruceros, agencia de empleo en cruceros, trabajar en barcos, cruceros desde RD, trabajo internacional"
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Trabajo en Cruceros desde RD | VIP Caribbean" />
+    <meta
+      property="og:description"
+      content="La agencia líder en República Dominicana para conseguir trabajo en cruceros internacionales."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content={OG_IMAGE} />
+    <meta property="og:url" content={SITE_URL} />
+    <meta property="og:locale" content="es_DO" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Trabajo en Cruceros | VIP Caribbean" />
+    <meta
+      name="twitter:description"
+      content="Conecta con las mejores líneas de cruceros y trabaja en el extranjero desde RD."
+    />
+    <meta name="twitter:image" content={OG_IMAGE} />
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
+    <link rel="manifest" href="/favicons/site.webmanifest" />
+    <link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#0f172a" />
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="theme-color" content="#0f172a" />
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -25,55 +77,20 @@ const footerPage = await getPageInfo("footer");
       rel="stylesheet"
     />
 
-    <!-- SEO -->
-    <title>VIP Caribbean | Agencia de Empleo en Cruceros - Santo Domingo</title>
-    <meta
-      name="description"
-      content="VIP Caribbean es la agencia líder en República Dominicana para conseguir trabajo en cruceros. Conectamos talento dominicano con Disney Cruise Line, Virgin Voyages, Costa Crociere y más."
-    />
-    <meta name="author" content="VIP Caribbean" />
-    <meta
-      name="keywords"
-      content="trabajo cruceros, empleo cruceros, agencia empleo cruceros, trabajo en barcos, Disney Cruise Line, Virgin Voyages, Santo Domingo"
-    />
-    <link rel="canonical" href="https://vipcaribbean.com" />
+    <!-- Astro View Transitions -->
+    <ClientRouter />
 
-    <!-- Open Graph -->
-    <meta
-      property="og:title"
-      content="VIP Caribbean | Tu Carrera en Cruceros Comienza Aquí"
-    />
-    <meta
-      property="og:description"
-      content="Conectamos talento dominicano con las mejores líneas de cruceros del mundo. Más de 500 profesionales colocados exitosamente."
-    />
-    <meta property="og:type" content="website" />
-    <meta
-      property="og:image"
-      content="https://lovable.dev/opengraph-image-p98pqg.png"
-    />
-    <meta property="og:url" content="https://vipcaribbean.com" />
-    <meta property="og:locale" content="es_DO" />
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="VIP Caribbean | Agencia de Empleo en Cruceros"
-    />
-    <meta
-      name="twitter:description"
-      content="Tu puerta de entrada a una carrera emocionante en cruceros internacionales."
-    />
-    <meta
-      name="twitter:image"
-      content="https://lovable.dev/opengraph-image-p98pqg.png"
-    />
-
-    <!-- Favicon -->
-         <ClientRouter />
-
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Schema.org: Organization -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "VIP Caribbean",
+        "url": "https://www.vipcaribbeanoffice.com",
+        "logo": "https://www.vipcaribbeanoffice.com/vipcaribbean-logo-base.png",
+        "description": "Agencia de empleo en cruceros en República Dominicana."
+      }
+    </script>
   </head>
 
   <body>
@@ -82,9 +99,8 @@ const footerPage = await getPageInfo("footer");
       <slot />
       <Footer acf={footerPage.acf} />
     </div>
-    <!-- Si quieres cargar un script, Astro recomienda: -->
-    <!-- <script type="module" src="/src/main.tsx"></script> -->
-    <SpeedInsights/>
+
+    <SpeedInsights />
     <Analytics />
   </body>
 </html>
