@@ -1,9 +1,9 @@
 
 const domain = import.meta.env.WP_DOMAIN
-//const apiUrl = `${domain}/wp-json/wp/v2`
+const apiUrl = `${domain}/wp-json/wp/v2`
 
-const apiUrl = domain ? `${domain}/wp-json/wp/v2` : null;
-
+//const apiUrl = domain ? `${domain}/wp-json/wp/v2` : null;
+/*
 const safeFetch = async (url: string) => {
   try {
     const res = await fetch(url, {
@@ -15,7 +15,7 @@ const safeFetch = async (url: string) => {
     console.error("WP fetch network error:", url, e?.message ?? e);
     return null;
   }
-};
+};*/
 
 
 export const getPageInfo = async (slug: string) => {
@@ -232,7 +232,6 @@ export const getEmpleoBySlug = async (slug: string): Promise<any | null> => {
 
 
 
-/*
 
 export const getUrgentEmpleos = async () => {
   const response = await fetch(`${apiUrl}/empleos?per_page=100&_embed`)
@@ -261,43 +260,13 @@ export const getUrgentEmpleos = async () => {
         urgente: empleo.acf.urgente,
       }
     })
-}*/
+}
 
 
 
 
 
-export const getUrgentEmpleos = async () => {
-  if (!apiUrl) return [];
 
-  const res = await safeFetch(`${apiUrl}/empleos?per_page=100&_embed`);
-  if (!res || !res.ok) return [];
-
-  const results = await res.json().catch(() => []);
-  if (!Array.isArray(results)) return [];
-
-  return results
-    .filter((empleo: any) => empleo?.acf?.urgente === true)
-    .map((empleo: any) => {
-      const categoria = empleo._embedded?.["wp:term"]?.[0]?.[0]?.name || null;
-
-      return {
-        id: empleo.id,
-        slug: empleo.slug,
-        titulo: empleo?.title?.rendered ?? "",
-        descripcion: empleo?.content?.rendered ?? "",
-        logoEmpleo: empleo?.acf?.logo_del_empleo || null,
-        cruiseLine: {
-          nombre: empleo?.acf?.cruise_line?.post_title || null,
-          logo: empleo?.acf?.cruise_line?.acf?.logo || null,
-          enlace: empleo?.acf?.cruise_line?.guid || null,
-        },
-        categoria,
-        duracion_del_contrato: empleo?.acf?.duracion_del_contrato || null,
-        urgente: empleo?.acf?.urgente ?? false,
-      };
-    });
-};
 
 
 
