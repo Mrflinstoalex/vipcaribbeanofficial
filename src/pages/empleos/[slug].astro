@@ -1,0 +1,35 @@
+---
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import EmpleoDetalle from "@/components/pages/EmpleoDetalle";
+import { getAllEmpleosSlugs } from "@/lib/wp";
+import { getEmpleoBySlug } from "@/lib/wp";
+
+export async function getStaticPaths() {
+  const slugs = await getAllEmpleosSlugs();
+  return slugs.map((slug: string) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+
+let empleo: any = null;
+let error: string | null = null;
+
+try {
+  empleo = await getEmpleoBySlug(slug);
+} catch (e) {
+  console.error(`Error cargando empleo con slug "${slug}":`, e);
+  error = 'No se pudo cargar la vacante en este momento. Por favor, intenta más tarde.';
+  // empleo queda como null
+}
+---
+
+<Layout>
+  <EmpleoDetalle 
+    empleo={empleo} 
+    error={error} 
+    slug={slug}
+    client:load 
+  />
+</Layout>

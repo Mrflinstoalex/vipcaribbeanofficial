@@ -1,0 +1,33 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import ResultadosPreEntrevista from "@/components/pages/ResultadosPreEntrevista";
+import { getAllCandidatos } from "@/lib/wp";
+
+export const prerender = false;
+export interface Candidato {
+  id: number;
+  nombre: string;
+  posicion: string;
+  estado: string;
+  fechaRaw: string;
+}
+
+let candidatos: Candidato[] = [];
+let error: string | null = null;
+
+try {
+  candidatos = await getAllCandidatos();
+} catch (e) {
+  console.error('Error cargando resultados de pre-entrevistas:', e);
+  error = 'No se pudieron cargar los resultados de las pre-entrevistas en este momento. Por favor, intenta más tarde.';
+  // candidatos queda como array vacío []
+}
+---
+
+<Layout>
+<ResultadosPreEntrevista 
+    candidatos={candidatos} 
+    error={error} 
+    client:load 
+  />
+</Layout>

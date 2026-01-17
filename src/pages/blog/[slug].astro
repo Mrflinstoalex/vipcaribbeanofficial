@@ -1,0 +1,86 @@
+---
+import BlogDetalle from "@/components/pages/BlogDetalle";
+import Layout from "@/layouts/Layout.astro";
+
+export const prerender = false;
+
+import {
+getAllBlogArticles,
+  getAllBlogArticlesSlugs,
+  getBlogArticleBySlug,
+} from "@/lib/wp";
+export interface BlogCategory {
+  id: number;
+  slug: string;
+  name: string;
+}
+
+export interface BlogArticle {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  date: string;
+  image: string | null;
+  category: string;        // slug
+  categoryLabel: string;   // nombre visible
+  readTime: string;
+  popular: boolean;
+  orden?: number;
+}
+
+export async function getStaticPaths() {
+  const slugs = await getAllBlogArticlesSlugs();
+
+  return slugs.map((slug) => ({
+    params: { slug },
+  }));
+}
+
+
+const { slug } = Astro.params;
+
+
+let article: BlogArticle | null = null;
+let hasError = false;
+let popularArticles: BlogArticle[] = [];
+let relatedArticles: BlogArticle[] = [];
+
+try {
+  const fetched = await getBlogArticleBySlug(String(slug));
+
+  if (!fetched) {
+    hasError = true;
+  } else {
+    article = fetched; // ✅ ya es BlogArticle seguro aquí
+
+    const all: BlogArticle[] = await getAllBlogArticles();
+
+    popularArticles = all
+      .filter((a) => a.popular && a.slug !== fetched.slug)
+      .slice(0, 4);
+
+    relatedArticles = all
+      .filter(
+        (a) => a.category === fetched.category && a.slug !== fetched.slug
+      )
+      .slice(0, 3);
+  }
+} catch (err) {
+  console.error("Blog article load error:", err);
+  hasError = true;
+}
+
+---
+
+
+<Layout>
+ <BlogDetalle
+    article={article}
+    popularArticles={popularArticles}
+    relatedArticles={relatedArticles}
+    hasError={hasError}
+    client:load
+  />
+</Layout>

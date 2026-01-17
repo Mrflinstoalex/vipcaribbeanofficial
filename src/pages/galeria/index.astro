@@ -1,0 +1,43 @@
+---
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import GaleriaEventos from "@/components/pages/GaleriaEventos";
+import { getAllEventos } from "@/lib/wp";
+
+export interface Evento {
+  id: number;
+  slug: string;
+  titulo: string;
+  descripcion: string;
+  fecha: string | null;
+  lugar: string | null;
+  portada: string | null;
+  fotosCount: number;
+  videosCount: number;
+}
+
+let eventos: Evento[] = [];
+let error: string | null = null;
+
+try {
+  eventos = await getAllEventos();
+} catch (e) {
+  console.error("Error cargando galería de eventos:", e);
+  error =
+    "No se pudieron cargar los eventos en este momento. Intenta recargar la página en unos minutos.";
+  // eventos queda como array vacío
+}
+---
+
+<Layout>
+ 
+        <main  transition:animate="fade"  class="pt-24 pb-16">
+  <GaleriaEventos 
+    eventos={eventos} 
+    error={error} 
+    client:load 
+  /></main>
+
+
+</Layout>

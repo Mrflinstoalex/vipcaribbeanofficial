@@ -1,0 +1,45 @@
+---
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import EmpleosPage from "@/components/pages/Empleos";
+import { getAllEmpleos } from "@/lib/wp";
+
+export interface CruiseLine {
+  nombre: string;
+  logo: string | null;
+  enlace: string;
+}
+
+export interface Empleo {
+  id: number;
+  slug: string;
+  titulo: string;
+  descripcion: string;
+  logoEmpleo: string | null;
+  cruiseLine: CruiseLine;
+  categoria: string | null;
+
+}
+let empleos: Empleo[] = [];
+let error: string | null = null;
+
+try {
+  empleos = await getAllEmpleos();
+} catch (e) {
+  console.error('Error cargando vacantes de empleo:', e);
+  error = 'No se pudieron cargar las vacantes disponibles en este momento. Por favor, intenta más tarde.';
+  // empleos queda como array vacío
+}
+---
+
+
+<Layout>
+  <EmpleosPage 
+    empleos={empleos} 
+    error={error} 
+    client:load 
+  />
+</Layout>
+
+

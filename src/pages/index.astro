@@ -1,0 +1,184 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+import Hero from "@/components/Hero";
+import Services from "@/components/Services";
+import Partners from "@/components/Partners";
+import Process from "@/components/Process";
+import CTA from "@/components/CTA";
+import AppointmentSection from "@/components/AppointmentSection";
+import UrgentJobs from "@/components/UrgentJobs";
+
+import {
+  Briefcase,
+  GraduationCap,
+  FileCheck,
+  Users,
+  Globe,
+  Shield,
+} from "lucide-react";
+
+import { getPageInfo, getUrgentEmpleos } from "@/lib/wp";
+
+export const prerender = false;
+
+/* --------------------------------------------------
+   SAFE DATA FETCH
+-------------------------------------------------- */
+
+let landingpageinfo: any = null;
+let empleosUrgentes: any[] = [];
+
+try {
+  landingpageinfo = await getPageInfo("landing-page");
+} catch (error) {
+  console.error("Error getPageInfo:", error);
+}
+
+try {
+  empleosUrgentes = await getUrgentEmpleos();
+} catch (error) {
+  console.error("Error getUrgentEmpleos:", error);
+}
+
+/* --------------------------------------------------
+   FALLBACKS (NUNCA undefined)
+-------------------------------------------------- */
+
+const acf = landingpageinfo?.acf ?? {};
+
+/* --------------------------------------------------
+   DATA OBJECTS SEGUROS
+-------------------------------------------------- */
+
+const HeroData = {
+  titulo: acf.hero_title ?? "",
+  subtitle: acf.hero_subtitle ?? "",
+  image: acf.hero_image ?? null,
+  mediaType: acf.hero_media_type ?? "image",
+  video: acf.hero_video ?? null,
+  rating: acf.hero_rating ?? null,
+  reviews: acf.hero_reviews ?? null,
+  numeroEmpleados: acf.hero_numero_de_empleados ?? null,
+  lineasCrucero: acf.hero_lineas_de_crucero ?? null,
+  proximaLinea: acf.hero_linea_de_cruceros_proxima_contratacion ?? null,
+  proximaFecha: acf.hero_proxima_contratacion_fecha ?? null,
+};
+
+const CTAData = {
+  titulo: acf.cta_titulo ?? "",
+  descripcion: acf.cta_descripcion ?? "",
+  phone: acf.cta_phone ?? "",
+  email: acf.cta_email ?? "",
+};
+
+const ServicesData = {
+  titulo: acf.nuestro_servicios_titulo ?? "",
+  descripcion: acf.nuestro_servicios_descripcion ?? "",
+  servicios: [
+    {
+      icon: Briefcase,
+      titulo: acf.nuestro_servicio_item_titulo_1 ?? "",
+      descripcion: acf.nuestro_servicio_item_descripcion_1 ?? "",
+    },
+    {
+      icon: GraduationCap,
+      titulo: acf.nuestro_servicio_item_titulo_2 ?? "",
+      descripcion: acf.nuestro_servicio_item_descripcion_2 ?? "",
+    },
+    {
+      icon: FileCheck,
+      titulo: acf.nuestro_servicio_item_titulo_3 ?? "",
+      descripcion: acf.nuestro_servicio_item_descripcion_3 ?? "",
+    },
+    {
+      icon: Users,
+      titulo: acf.nuestro_servicio_item_titulo_4 ?? "",
+      descripcion: acf.nuestro_servicio_item_descripcion_4 ?? "",
+    },
+    {
+      icon: Globe,
+      titulo: acf.nuestro_servicio_item_titulo_5 ?? "",
+      descripcion: acf.nuestro_servicio_item_descripcion_5 ?? "",
+    },
+    {
+      icon: Shield,
+      titulo: acf.nuestro_servicio_item_titulo_6 ?? "",
+      descripcion: acf.nuestro_servicio_item_descripcion_6 ?? "",
+    },
+  ],
+};
+
+const AliadosData = {
+  titulo: acf.nuestros_aliados_titulo ?? "",
+  descripcion: acf.nuestros_aliados_descripcion ?? "",
+  aliados: [
+    acf.nuestros_aliados_linea_1 && {
+      nombre: acf.nuestros_aliados_linea_1,
+      logo: acf.nuestros_aliados_logo_1,
+    },
+    acf.nuestros_aliados_linea_2 && {
+      nombre: acf.nuestros_aliados_linea_2,
+      logo: acf.nuestros_aliados_logo_2,
+    },
+    acf.nuestros_aliados_linea_3 && {
+      nombre: acf.nuestros_aliados_linea_3,
+      logo: acf.nuestros_aliados_logo_3,
+    },
+    acf.nuestros_aliados_linea_4 && {
+      nombre: acf.nuestros_aliados_linea_4,
+      logo: acf.nuestros_aliados_logo_4,
+    },
+    acf.nuestros_aliados_linea_5 && {
+      nombre: acf.nuestros_aliados_linea_5,
+      logo: acf.nuestros_aliados_logo_5,
+    },
+    acf.nuestros_aliados_linea_6 && {
+      nombre: acf.nuestros_aliados_linea_6,
+      logo: acf.nuestros_aliados_logo_6,
+    },
+    acf.nuestros_aliados_linea_7 && {
+      nombre: acf.nuestros_aliados_linea_7,
+      logo: acf.nuestros_aliados_logo_7,
+    },
+    acf.nuestros_aliados_linea_8 && {
+      nombre: acf.nuestros_aliados_linea_8,
+      logo: acf.nuestros_aliados_logo_8,
+    },
+  ].filter(Boolean),
+};
+
+const ProcessData = {
+  titulo: acf.como_funciona_titulo ?? "",
+  descripcion: acf.como_funciona_description ?? "",
+  pasos: [
+    {
+      titulo: acf.paso_titulo_1 ?? "",
+      descripcion: acf.paso_descripcion_1 ?? "",
+    },
+    {
+      titulo: acf.paso_titulo_2 ?? "",
+      descripcion: acf.paso_descripcion_2 ?? "",
+    },
+    {
+      titulo: acf.paso_titulo_3 ?? "",
+      descripcion: acf.paso_descripcion_3 ?? "",
+    },
+    {
+      titulo: acf.paso_titulo_4 ?? "",
+      descripcion: acf.paso_descripcion_4 ?? "",
+    },
+  ],
+};
+---
+
+<Layout>
+  {HeroData.titulo && <Hero data={HeroData} />}
+  {ServicesData.servicios.length > 0 && <Services data={ServicesData} />}
+  {AliadosData.aliados.length > 0 && <Partners data={AliadosData} />}
+  {empleosUrgentes.length > 0 && <UrgentJobs data={empleosUrgentes} />}
+  {ProcessData.pasos.length > 0 && <Process data={ProcessData} />}
+
+  <AppointmentSection />
+  <CTA data={CTAData} />
+</Layout>

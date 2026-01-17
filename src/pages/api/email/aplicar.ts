@@ -1,0 +1,96 @@
+//api/email/aplicar.ts
+import type { APIRoute } from "astro";
+import { transporter } from "./_mailer";
+export const prerender = false;
+
+export const POST: APIRoute = async ({ request }) => {
+  const formData = await request.formData();
+
+  const nombre = formData.get("nombre")?.toString().trim();
+  const email = formData.get("email")?.toString().trim();
+  const telefono = formData.get("telefono")?.toString().trim();
+  const mensaje = formData.get("mensaje")?.toString().trim();
+  const cv = formData.get("cv") as File | null;
+
+  // Validación básica
+  if (!nombre || !email || !telefono || !cv) {
+    return new Response(
+      JSON.stringify({ message: "Datos incompletos" }),
+      { status: 400 }
+    );
+  }
+
+  const buffer = Buffer.from(await cv.arrayBuffer());
+
+  // Email al administrador (con el CV adjunto)
+  await transporter.sendMail({
+    from: `"Aplicaciones Web" <${import.meta.env.EMAIL_USER}>`,
+    to: import.meta.env.EMAIL_USER,
+    subject: "📄 Nueva aplicación recibida",
+    html: `
+      <h3>Nueva aplicación</h3>
+      <p><strong>Nombre:</strong> ${nombre}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Teléfono:</strong> ${telefono}</p>
+      <p><strong>Mensaje:</strong> ${mensaje || "—"}</p>
+    `,
+    attachments: [
+      {
+        filename: cv.name,
+        content: buffer,
+      },
+    ],
+  });
+
+  // Email de respuesta automática al aplicante
+await transporter.sendMail({
+  from: `"VIP Caribbean" <${import.meta.env.EMAIL_USER}>`,
+  to: email,
+  subject: "🌴 Gracias por su interés en VIP Caribbean República Dominicana",
+  html: `
+    <div style="font-family: Arial, sans-serif; font-size: 14px; color: #222;">
+      <p><strong>Estimado/a ${nombre}:</strong></p>
+
+      <p>Gracias por contactar a <strong>VIP Caribbean República Dominicana</strong>. Hemos recibido su currículum y le agradecemos su interés en formar parte de nuestro equipo.</p>
+
+      <p>Para que podamos considerarle para un puesto, es imprescindible que cumpla con los requisitos esenciales y prepare los documentos para la pre-entrevista.</p>
+
+      <h3>📝 Requisitos Esenciales</h3>
+      <ul>
+        <li>Ser ciudadano dominicano o poseer pasaporte dominicano.</li>
+        <li>Tener al menos 21 años de edad.</li>
+        <li>Dominio del idioma inglés (obligatorio).</li>
+        <li>Experiencia previa en el sector (algunos puestos ofrecen capacitación).</li>
+      </ul>
+
+      <h3>📄 Documentos para la Pre-Entrevista</h3>
+      <ul>
+        <li>CV en inglés (PDF, máximo 150 KB, con usuario de Microsoft Teams).</li>
+        <li>Dos cartas de referencia.</li>
+        <li>Dos copias a color del pasaporte (vigencia mínima 1 año).</li>
+        <li>Certificado de antecedentes penales.</li>
+        <li>Dos fotos 2x2.</li>
+      </ul>
+
+      <h3>📞 Cómo programar su pre-entrevista</h3>
+      <p>Una vez tenga todos los documentos listos, llámenos a:</p>
+      <p>
+        📞 809-970-7669<br>
+        📞 809-912-4201
+      </p>
+
+      <p><strong>Horario:</strong> Lunes a viernes, 9:00 a.m. a 1:00 p.m.</p>
+
+      <p>Puede ver más información en:<br>
+      🌐 <a href="https://www.vipcaribbeanoffice.com">www.vipcaribbeanoffice.com</a></p>
+
+      <br>
+      <p>Atentamente,<br>
+      <strong>VIP Caribbean República Dominicana</strong></p>
+    </div>
+  `,
+});
+
+
+  return new Response(JSON.stringify({ success: true }));
+};

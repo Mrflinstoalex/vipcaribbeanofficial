@@ -1,0 +1,29 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import PreguntasFrecuentes from "@/components/pages/PreguntasFrecuentes";
+import { getPageInfo } from '@/lib/wp';
+
+export const prerender = false;
+export type AcfData = Record<string, string>;
+let pageInfo = { acf: {} as AcfData }; // Valor por defecto seguro
+let error = null;
+
+try {
+  pageInfo = await getPageInfo('preguntas-frecuentes');
+} catch (e) {
+  console.error('Error cargando datos de FAQs:', e);
+  error = 'No se pudieron cargar las preguntas frecuentes en este momento.';
+}
+---
+
+<Layout>
+        <main transition:animate="slide" class="pt-24 pb-16">
+
+     
+<PreguntasFrecuentes 
+    acf={pageInfo.acf} 
+    error={error} 
+    client:load 
+  />
+     </main>
+</Layout>

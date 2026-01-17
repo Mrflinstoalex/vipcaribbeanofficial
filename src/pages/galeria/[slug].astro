@@ -1,0 +1,40 @@
+---
+export const prerender = false;
+
+import EventoDetalle from "@/components/pages/EventoDetalle";
+
+import Layout from "@/layouts/Layout.astro";
+import { getAllEventosSlugs } from "@/lib/wp";
+import { getEventoMedia } from "@/lib/eventoUtils";
+
+export async function getStaticPaths() {
+  const slugs = await getAllEventosSlugs();
+  return slugs.map((slug: string) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+
+let evento: any = null;
+let error: string | null = null;
+
+try {
+  evento = await getEventoMedia(slug);
+} catch (e) {
+  console.error(`Error cargando evento con slug "${slug}":`, e);
+  error = 'No se pudo cargar el evento en este momento. Por favor, intenta más tarde.';
+  // evento queda como null
+}
+---
+
+<Layout>
+ 
+  <EventoDetalle 
+    evento={evento} 
+        slug={slug}
+
+    error={error} 
+    client:load 
+  />
+
+
+</Layout>

@@ -1,0 +1,22 @@
+---
+import Blog from "@/components/pages/Blog";
+import Layout from "@/layouts/Layout.astro";
+import { getAllBlogArticles } from "@/lib/wp";
+export const prerender = false;
+
+let blogArticles = [];
+let hasError = false;
+
+try {
+  blogArticles = await getAllBlogArticles();
+} catch (error) {
+  console.error("Error cargando blog:", error);
+  hasError = true;
+}
+
+---
+
+
+<Layout>
+ <Blog articles={blogArticles} hasError={hasError} client:load />
+</Layout>

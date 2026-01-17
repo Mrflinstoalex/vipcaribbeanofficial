@@ -1,0 +1,11 @@
+---
+// components/TransitionImage.astro
+const { src, alt, slug, classname } = Astro.props;
+---
+
+<img
+  src={src}
+  alt={alt}
+  transition:name={`img-${slug}`}
+  class={classname}
+/>
