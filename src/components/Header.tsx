@@ -11,7 +11,7 @@ const Header = ({ pathname }: { pathname: string }) => {
     { label: "Resultados", href: "/resultados" },
     { label: "Galería", href: "/galeria" },
     { label: "Quiénes Somos", href: "/quienes-somos" },
-    { label: "Blog", href: "/blog" },
+
     { label: "FAQ", href: "/faq" },
   ];
 

@@ -16,6 +16,8 @@ export interface HeroProps {
 }
 
 const Hero = ({ data }: { data: HeroProps }) => {
+  const videoSrc = typeof data.video === "string" ? data.video : null;
+  const showVideo = data.mediaType === "video" && !!videoSrc;
   return (
     <section
       id="hero"
@@ -99,11 +101,15 @@ const Hero = ({ data }: { data: HeroProps }) => {
               {data.mediaType === "video" && typeof data.video === "string" && (
                 <video
                   autoPlay
+                  playsInline
+                  webkit-playsinline="true"
+
                   muted
                   loop
                   className="w-full h-[400px] lg:h-[500px] object-cover"
                 >
-                  <source src={data.video} type="video/mp4" />
+                                    <source src={videoSrc!} type="video/mp4" />
+
                 </video>
               )}
 

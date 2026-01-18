@@ -36,7 +36,27 @@ const Blog =  ({ articles, hasError = false }: BlogProps) => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  
+  const isDev = true
+  if (isDev) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="max-w-md w-full text-center bg-card border border-border rounded-2xl p-8 shadow-lg">
+          <div className="flex justify-center mb-4">
+            <Ship className="w-12 h-12 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Página en desarrollo</h1>
+          <p className="text-muted-foreground mb-6">
+            Estamos trabajando en esta sección. Vuelve pronto.
+          </p>
+
+          {/* opcional */}
+          <a href="/">
+            <Button className="w-full">Volver al inicio</Button>
+          </a>
+        </div>
+      </div>
+    );
+  }
   // Manejo de error duro (cuando WP no respondió)
   if (hasError) {
     return (
