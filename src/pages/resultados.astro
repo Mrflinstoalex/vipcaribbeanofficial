@@ -17,6 +17,7 @@ let error: string | null = null;
 
 try {
   candidatos = await getAllCandidatos();
+
 } catch (e) {
   console.error('Error cargando resultados de pre-entrevistas:', e);
   error = 'No se pudieron cargar los resultados de las pre-entrevistas en este momento. Por favor, intenta más tarde.';

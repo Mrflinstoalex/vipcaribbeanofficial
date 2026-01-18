@@ -64,36 +64,35 @@ export const getAllPostsSlugs = async () => {
 
 
 export const getAllCandidatos = async () => {
-  const candidatosUrl = `${apiUrl}/candidatos`
+  const perPage = 100;
+  let page = 1;
+  let allResults: any[] = [];
 
-  const response = await fetch(`${candidatosUrl}?per_page=100&_embed`)
-  if (!response.ok) throw new Error("Failed to fetch candidates")
+  while (true) {
+    const response = await fetch(`${apiUrl}/candidatos?per_page=${perPage}&page=${page}&_embed`);
+    if (!response.ok) break;
 
-  const results = await response.json()
+    const results = await response.json();
+    if (!Array.isArray(results) || results.length === 0) break;
 
-  const candidatos = results.map((candidato: any) => {
-    const { id, title, acf } = candidato
+    allResults = allResults.concat(results);
 
-    // Parsear fecha de formato DD/MM/YYYY
-    const fechaParts = acf.fecha_de_entrevista.split('/') // ["13","12","2025"]
-    const fecha = new Date(
-      Number(fechaParts[2]),      // año
-      Number(fechaParts[1]) - 1,  // mes (0-indexado)
-      Number(fechaParts[0])       // día
-    )
+    if (results.length < perPage) break;
+    page++;
+  }
+
+  return allResults.map((candidato: any) => {
+    const { id, title, acf } = candidato;
 
     return {
       id,
-      nombre: title.rendered,
-      posicion: acf.posicion,
-      estado: acf.estado,
-      fecha,
-      fechaRaw: acf.fecha_de_entrevista
-    }
-  })
-
-  return candidatos
-}
+      nombre: title?.rendered ?? "",
+      posicion: acf?.posicion ?? "",
+      estado: acf?.estado ?? "",
+      fechaRaw: acf?.fecha_de_entrevista ?? "",
+    };
+  });
+};
 
 
 
