@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -18,8 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-// import Header from "@/components/Header";   // Descomenta si tienes Header
-// import Footer from "@/components/Footer";   // Descomenta si tienes Footer
 
 function generarHorasCada5Minutos() {
   const horas: string[] = [];
@@ -40,9 +37,17 @@ function generarHorasCada5Minutos() {
   return horas;
 }
 
+function toISODate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export default function ReservarCita() {
   const { toast } = useToast();
-  const horasDisponibles = generarHorasCada5Minutos();
+
+  const horasDisponibles = useMemo(() => generarHorasCada5Minutos(), []);
 
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -51,8 +56,62 @@ export default function ReservarCita() {
     email: "",
     telefono: "",
   });
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // ✅ Bloqueos desde WordPress
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
+  const [loadingBlockedDates, setLoadingBlockedDates] = useState(true);
+
+  useEffect(() => {
+    const loadBlockedDates = async () => {
+      try {
+        // ✅ Debe ser público para frontend
+        // Ejemplo: PUBLIC_WP_DOMAIN=https://wheat-rat-997991.hostingersite.com
+        const wpDomain = import.meta.env.PUBLIC_WP_DOMAIN;
+
+        if (!wpDomain) {
+          console.warn("PUBLIC_WP_DOMAIN no está definido. No se cargarán bloqueos.");
+          setBlockedDates([]);
+          return;
+        }
+
+        const res = await fetch(
+          `${wpDomain}/wp-json/vipc/v1/blocked-dates?cb=${Date.now()}`,
+          { cache: "no-store" }
+        );
+
+        if (!res.ok) throw new Error("No se pudieron cargar fechas bloqueadas");
+
+        const data = await res.json();
+        setBlockedDates(Array.isArray(data?.blocked_dates) ? data.blocked_dates : []);
+      } catch (err) {
+        console.error("Error loading blocked dates:", err);
+        setBlockedDates([]);
+      } finally {
+        setLoadingBlockedDates(false);
+      }
+    };
+
+    loadBlockedDates();
+  }, []);
+
+  // Si el usuario tenía seleccionada una fecha que luego se bloquea, resetea selección
+  useEffect(() => {
+    if (!date) return;
+    const iso = toISODate(date);
+    if (blockedDates.includes(iso)) {
+      setDate(undefined);
+      setSelectedTime(null);
+      toast({
+        title: "Fecha no disponible",
+        description:
+          "Ese miércoles fue marcado como cerrado. Por favor selecciona otro miércoles.",
+        variant: "destructive",
+      });
+    }
+  }, [blockedDates]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -64,7 +123,8 @@ export default function ReservarCita() {
     !!selectedTime &&
     formData.nombre.trim() !== "" &&
     formData.email.trim() !== "" &&
-    formData.telefono.trim() !== "";
+    formData.telefono.trim() !== "" &&
+    !loadingBlockedDates; // opcional: no permitir submit hasta cargar bloqueos
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +132,20 @@ export default function ReservarCita() {
     if (!isFormValid || isLoading) {
       toast({
         title: "Campos incompletos",
-        description: "Por favor complete todos los campos requeridos.",
+        description: loadingBlockedDates
+          ? "Cargando disponibilidad... inténtalo en unos segundos."
+          : "Por favor complete todos los campos requeridos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ✅ Doble-validación: si por algún motivo eligieron una fecha bloqueada
+    const iso = toISODate(date!);
+    if (blockedDates.includes(iso)) {
+      toast({
+        title: "Fecha no disponible",
+        description: "Ese miércoles está cerrado. Selecciona otro.",
         variant: "destructive",
       });
       return;
@@ -80,7 +153,9 @@ export default function ReservarCita() {
 
     setIsLoading(true);
 
-    const fechaFormateada = `${format(date!, "d 'de' MMMM, yyyy", { locale: es })} a las ${selectedTime}`;
+    const fechaFormateada = `${format(date!, "d 'de' MMMM, yyyy", {
+      locale: es,
+    })} a las ${selectedTime}`;
 
     try {
       const res = await fetch("/api/email/cita", {
@@ -91,6 +166,8 @@ export default function ReservarCita() {
           email: formData.email.trim(),
           telefono: formData.telefono.trim(),
           fecha: fechaFormateada,
+          dateISO: iso, // ✅ útil para validar del lado del server si luego lo agregas
+          time: selectedTime,
         }),
       });
 
@@ -121,7 +198,6 @@ export default function ReservarCita() {
   if (isSubmitted) {
     return (
       <main className="min-h-screen bg-background">
-        {/* <Header /> */}
         <section className="py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-xl mx-auto text-center">
@@ -159,7 +235,6 @@ export default function ReservarCita() {
             </div>
           </div>
         </section>
-        {/* <Footer /> */}
       </main>
     );
   }
@@ -167,8 +242,6 @@ export default function ReservarCita() {
   /* ------------------- FORMULARIO PRINCIPAL ------------------- */
   return (
     <main className="min-h-screen bg-background">
-      {/* <Header /> */}
-
       <section className="py-12 bg-gradient-hero">
         <div className="container mx-auto px-4">
           {/* Back Link */}
@@ -193,57 +266,6 @@ export default function ReservarCita() {
             </p>
           </div>
 
-          {/* Important Notices */}
-          <div className="max-w-4xl mx-auto mb-8 md:mb-10">
-            <div className="bg-card rounded-2xl shadow-card border border-border p-4 sm:p-6 md:p-8">
-              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-5 sm:mb-6">
-                <div className="p-3 bg-primary/10 rounded-xl shrink-0">
-                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                    Nota Importante sobre el Proceso de Aplicación
-                  </h3>
-                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                    Para formalizar su candidatura y garantizar que su expediente esté completo y listo
-                    para la evaluación interna y la programación de las entrevistas finales, existe un
-                    proceso administrativo y de gestión de archivos que se activa tras la validación
-                    documental. Este paso asegura la correcta integración de su perfil y la asignación
-                    de recursos para su seguimiento.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-secondary/50 border border-secondary rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <span className="text-lg sm:text-xl">📋</span>
-                  <p className="text-sm sm:text-base font-medium text-foreground">
-                    DEBE CONTAR CON TODOS LOS REQUISITOS QUE SE LE PIDEN EN EL EMAIL ANTES DE AGENDAR SU CITA.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 sm:p-5">
-                <div className="text-center">
-                  <h4 className="text-sm sm:text-base font-bold text-primary mb-2">
-                    CONFIRMACIÓN DE ASISTENCIA OBLIGATORIA
-                  </h4>
-                  <p className="text-sm sm:text-base text-foreground font-medium mb-1">
-                    ES DE VITAL IMPORTANCIA LLAMAR AL{" "}
-                    <a href="tel:8099124201" className="text-primary font-bold hover:underline">
-                      809-912-4201
-                    </a>
-                  </p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    24 HORAS ANTES PARA CONFIRMAR SU ASISTENCIA A LA CITA DE PRE-ENTREVISTA.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Booking Form */}
           <div className="max-w-5xl mx-auto">
             <form onSubmit={handleSubmit}>
@@ -259,12 +281,20 @@ export default function ReservarCita() {
                     <Calendar
                       mode="single"
                       selected={date}
-                      onSelect={setDate}
+                      onSelect={(d) => {
+                        setDate(d);
+                        setSelectedTime(null); // reset time al cambiar fecha
+                      }}
                       locale={es}
                       disabled={(d) => {
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
-                        return d <= today || d.getDay() !== 3; // Solo miércoles y fechas futuras
+
+                        const iso = toISODate(d);
+                        const isBlocked = blockedDates.includes(iso);
+
+                        // ✅ Solo miércoles + futuras + NO bloqueadas
+                        return d <= today || d.getDay() !== 3 || isBlocked;
                       }}
                       className="rounded-xl border border-border pointer-events-auto"
                     />
@@ -275,6 +305,12 @@ export default function ReservarCita() {
                       <span className="font-medium text-foreground">📅 Solo miércoles disponibles</span>
                       <br />
                       Horario: 9:00 AM - 12:00 PM
+                      {loadingBlockedDates ? (
+                        <>
+                          <br />
+                          <span className="text-xs">Cargando disponibilidad...</span>
+                        </>
+                      ) : null}
                     </p>
                   </div>
 
@@ -311,6 +347,7 @@ export default function ReservarCita() {
                     <User className="h-5 w-5 text-primary" />
                     Información de Contacto
                   </h2>
+
                   <div className="space-y-4 sm:space-y-5">
                     <div className="space-y-2">
                       <Label htmlFor="nombre" className="text-foreground font-medium flex items-center gap-2">
@@ -391,6 +428,14 @@ export default function ReservarCita() {
                         📞 Recuerda llamar al <span className="font-semibold text-foreground">809-912-4201</span>, 24 horas antes para confirmar tu asistencia.
                       </p>
                     </div>
+
+                    {!import.meta.env.PUBLIC_WP_DOMAIN ? (
+                      <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+                        <p className="text-xs text-foreground">
+                          ⚠️ Falta configurar <b>PUBLIC_WP_DOMAIN</b>. Los bloqueos desde WordPress no se aplicarán.
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -398,8 +443,6 @@ export default function ReservarCita() {
           </div>
         </div>
       </section>
-
-      {/* <Footer /> */}
     </main>
   );
 }

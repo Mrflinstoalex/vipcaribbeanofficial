@@ -1,7 +1,26 @@
-//api/email/aplicar.ts
+// /api/email/aplicar.ts
 import type { APIRoute } from "astro";
 import { transporter } from "./_mailer";
+
 export const prerender = false;
+
+type ApplyTemplate = {
+  subject?: string;
+  body_html?: string;
+};
+
+function applyVars(template: string, vars: Record<string, string>) {
+  return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => vars[key] ?? "");
+}
+
+function escHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export const POST: APIRoute = async ({ request }) => {
   const formData = await request.formData();
@@ -9,15 +28,14 @@ export const POST: APIRoute = async ({ request }) => {
   const nombre = formData.get("nombre")?.toString().trim();
   const email = formData.get("email")?.toString().trim();
   const telefono = formData.get("telefono")?.toString().trim();
-  const mensaje = formData.get("mensaje")?.toString().trim();
+  const mensaje = formData.get("mensaje")?.toString().trim() || "";
   const cv = formData.get("cv") as File | null;
 
   // Validación básica
   if (!nombre || !email || !telefono || !cv) {
-    return new Response(
-      JSON.stringify({ message: "Datos incompletos" }),
-      { status: 400 }
-    );
+    return new Response(JSON.stringify({ message: "Datos incompletos" }), {
+      status: 400,
+    });
   }
 
   const buffer = Buffer.from(await cv.arrayBuffer());
@@ -29,10 +47,10 @@ export const POST: APIRoute = async ({ request }) => {
     subject: "📄 Nueva aplicación recibida",
     html: `
       <h3>Nueva aplicación</h3>
-      <p><strong>Nombre:</strong> ${nombre}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Teléfono:</strong> ${telefono}</p>
-      <p><strong>Mensaje:</strong> ${mensaje || "—"}</p>
+      <p><strong>Nombre:</strong> ${escHtml(nombre)}</p>
+      <p><strong>Email:</strong> ${escHtml(email)}</p>
+      <p><strong>Teléfono:</strong> ${escHtml(telefono)}</p>
+      <p><strong>Mensaje:</strong> ${mensaje ? escHtml(mensaje) : "—"}</p>
     `,
     attachments: [
       {
@@ -42,14 +60,35 @@ export const POST: APIRoute = async ({ request }) => {
     ],
   });
 
-  // Email de respuesta automática al aplicante
-await transporter.sendMail({
-  from: `"VIP Caribbean" <${import.meta.env.EMAIL_USER}>`,
-  to: email,
-  subject: "🌴 Gracias por su interés en VIP Caribbean República Dominicana",
-  html: `
+  // ✅ Buscar plantilla desde WordPress (editable en WP)
+  let template: ApplyTemplate | null = null;
+  try {
+    const wpDomain = (import.meta.env.WP_DOMAIN || "").replace(/\/$/, "");
+    if (wpDomain) {
+      const res = await fetch(
+        `${wpDomain}/wp-json/vipc/v1/email-apply-template?cb=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      if (res.ok) template = (await res.json()) as ApplyTemplate;
+    }
+  } catch (e) {
+    console.error("Error cargando template desde WP:", e);
+  }
+
+  const vars = {
+    nombre,
+    email,
+    telefono,
+    mensaje,
+  };
+
+  // Fallback (si WP no tiene plantilla guardada)
+  const defaultSubject =
+    "🌴 Gracias por su interés en VIP Caribbean República Dominicana";
+
+  const defaultBodyHtml = `
     <div style="font-family: Arial, sans-serif; font-size: 14px; color: #222;">
-      <p><strong>Estimado/a ${nombre}:</strong></p>
+      <p><strong>Estimado/a ${escHtml(nombre)}:</strong></p>
 
       <p>Gracias por contactar a <strong>VIP Caribbean República Dominicana</strong>. Hemos recibido su currículum y le agradecemos su interés en formar parte de nuestro equipo.</p>
 
@@ -88,9 +127,27 @@ await transporter.sendMail({
       <p>Atentamente,<br>
       <strong>VIP Caribbean República Dominicana</strong></p>
     </div>
-  `,
-});
+  `;
 
+  const subjectFromWP = template?.subject?.trim();
+  const bodyFromWP = template?.body_html?.trim();
+
+  // ✅ Si WP trae contenido, úsalo; si no, usa fallback
+  const finalSubject = subjectFromWP
+    ? applyVars(subjectFromWP, vars)
+    : defaultSubject;
+
+  const finalHtml = bodyFromWP
+    ? applyVars(bodyFromWP, vars)
+    : defaultBodyHtml;
+
+  // Email automático al aplicante (editable via WP)
+  await transporter.sendMail({
+    from: `"VIP Caribbean" <${import.meta.env.EMAIL_USER}>`,
+    to: email,
+    subject: finalSubject,
+    html: finalHtml,
+  });
 
   return new Response(JSON.stringify({ success: true }));
 };
