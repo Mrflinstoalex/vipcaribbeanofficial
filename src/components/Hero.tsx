@@ -103,10 +103,14 @@ const Hero = ({ data }: { data: HeroProps }) => {
                   autoPlay
                   playsInline
                   webkit-playsinline="true"
+  preload="metadata"
 
                   muted
                   loop
-                  className="w-full h-[400px] lg:h-[500px] object-cover"
+                     controls={false}
+      disablePictureInPicture
+      controlsList="nofullscreen noremoteplayback nodownload"
+                  className="w-full h-[400px] lg:h-[500px] object-cover pointer-events-none"
                 >
                                     <source src={videoSrc!} type="video/mp4" />
 
