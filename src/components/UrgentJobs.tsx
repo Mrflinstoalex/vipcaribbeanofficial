@@ -68,7 +68,7 @@ const UrgentJobs: React.FC<UrgentJobsProps> = ({ data }) => {
             <span className="text-sm font-semibold">Vacantes Urgentes</span>
           </div>
           <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
-            Posiciones que Necesitamos <span className="text-gradient-coral">Ahora</span>
+           Oportunidades Destacadas de esta <span className="text-gradient-coral">Semana</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Estas posiciones tienen alta demanda y necesitamos candidatos calificados de inmediato.
