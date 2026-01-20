@@ -10,7 +10,7 @@ let data = null;
 let error: string | null = null;
 
 try {
-  const pageData = await getPageInfo("quienes-somos-2");
+  const pageData = await getPageInfo("quienes-somos");
   // 👇 "cocinas" el HTML en un objeto por secciones
   data = parseQuienesSomos(pageData.contentHtml, pageData.title);
 } catch (e) {
