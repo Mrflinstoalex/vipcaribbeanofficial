@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   CheckCircle2,
 } from "lucide-react";
+import { Toaster } from "@/components/ui/toaster";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -44,6 +45,21 @@ function toISODate(d: Date) {
   return `${y}-${m}-${day}`;
 }
 
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+// Próximo miércoles (si hoy es miércoles, usa el de la próxima semana)
+function getNextWednesday(from: Date) {
+  const d = startOfDay(from);
+  const weekday = 3; // 0=dom, 1=lun, 2=mar, 3=mié
+  const diff = (weekday - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + (diff === 0 ? 7 : diff));
+  return d;
+}
+
 export default function ReservarCita() {
   const { toast } = useToast();
 
@@ -60,15 +76,21 @@ export default function ReservarCita() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ Bloqueos desde WordPress
+  // ✅ Bloqueos de miércoles completos (cerrado) desde WordPress
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [loadingBlockedDates, setLoadingBlockedDates] = useState(true);
+
+  // ✅ Horas bloqueadas por 24h (si alguien reservó hoy esa hora)
+  const [lockedTimes, setLockedTimes] = useState<string[]>([]);
+  const [loadingLockedTimes, setLoadingLockedTimes] = useState(true);
+
+  // ✅ Regla: solo permitir seleccionar 1 miércoles (el próximo miércoles)
+  const allowedWednesday = useMemo(() => getNextWednesday(new Date()), []);
+  const allowedWednesdayISO = useMemo(() => toISODate(allowedWednesday), [allowedWednesday]);
 
   useEffect(() => {
     const loadBlockedDates = async () => {
       try {
-        // ✅ Debe ser público para frontend
-        // Ejemplo: PUBLIC_WP_DOMAIN=https://wheat-rat-997991.hostingersite.com
         const wpDomain = import.meta.env.PUBLIC_WP_DOMAIN;
 
         if (!wpDomain) {
@@ -97,21 +119,71 @@ export default function ReservarCita() {
     loadBlockedDates();
   }, []);
 
-  // Si el usuario tenía seleccionada una fecha que luego se bloquea, resetea selección
+  useEffect(() => {
+    const loadLockedTimes = async () => {
+      try {
+        const wpDomain = import.meta.env.PUBLIC_WP_DOMAIN;
+
+        if (!wpDomain) {
+          console.warn("PUBLIC_WP_DOMAIN no está definido. No se cargarán locked times.");
+          setLockedTimes([]);
+          return;
+        }
+
+        const res = await fetch(
+          `${wpDomain}/wp-json/vipc/v1/locked-times?hours=24&cb=${Date.now()}`,
+          { cache: "no-store" }
+        );
+
+        if (!res.ok) throw new Error("No se pudieron cargar locked times");
+
+        const data = await res.json();
+        setLockedTimes(Array.isArray(data?.locked_times) ? data.locked_times : []);
+      } catch (err) {
+        console.error("Error loading locked times:", err);
+        setLockedTimes([]);
+      } finally {
+        setLoadingLockedTimes(false);
+      }
+    };
+
+    loadLockedTimes();
+  }, []);
+
+  // Si la fecha seleccionada se vuelve inválida, resetea
   useEffect(() => {
     if (!date) return;
+
     const iso = toISODate(date);
+
+    // 1) Si WP bloqueó ese miércoles
     if (blockedDates.includes(iso)) {
       setDate(undefined);
       setSelectedTime(null);
       toast({
         title: "Fecha no disponible",
+        description: "Ese miércoles fue marcado como cerrado. Selecciona otro.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 2) Si no es el miércoles permitido (solo 1 por semana)
+    if (iso !== allowedWednesdayISO) {
+      setDate(undefined);
+      setSelectedTime(null);
+      toast({
+        title: "Solo un miércoles disponible",
         description:
-          "Ese miércoles fue marcado como cerrado. Por favor selecciona otro miércoles.",
+          `Por ahora solo puedes reservar para el miércoles ${format(
+            allowedWednesday,
+            "d 'de' MMMM, yyyy",
+            { locale: es }
+          )}.`,
         variant: "destructive",
       });
     }
-  }, [blockedDates]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [blockedDates, allowedWednesdayISO]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -124,75 +196,125 @@ export default function ReservarCita() {
     formData.nombre.trim() !== "" &&
     formData.email.trim() !== "" &&
     formData.telefono.trim() !== "" &&
-    !loadingBlockedDates; // opcional: no permitir submit hasta cargar bloqueos
+    !loadingBlockedDates &&
+    !loadingLockedTimes &&
+    !lockedTimes.includes(selectedTime);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!isFormValid || isLoading) {
-      toast({
-        title: "Campos incompletos",
-        description: loadingBlockedDates
+  if (!isFormValid || isLoading) {
+    toast({
+      title: "Campos incompletos",
+      description:
+        loadingBlockedDates || loadingLockedTimes
           ? "Cargando disponibilidad... inténtalo en unos segundos."
+          : lockedTimes.includes(selectedTime || "")
+          ? "Ese horario está bloqueado por 24 horas. Elige otro."
           : "Por favor complete todos los campos requeridos.",
-        variant: "destructive",
-      });
-      return;
-    }
+      variant: "destructive",
+    });
+    return;
+  }
 
-    // ✅ Doble-validación: si por algún motivo eligieron una fecha bloqueada
-    const iso = toISODate(date!);
-    if (blockedDates.includes(iso)) {
-      toast({
-        title: "Fecha no disponible",
-        description: "Ese miércoles está cerrado. Selecciona otro.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const iso = toISODate(date!);
 
-    setIsLoading(true);
+  // ✅ Solo el miércoles permitido
+  if (iso !== allowedWednesdayISO) {
+    toast({
+      title: "Fecha no permitida",
+      description: `Solo puedes reservar para el miércoles ${format(
+        allowedWednesday,
+        "d 'de' MMMM, yyyy",
+        { locale: es }
+      )}.`,
+      variant: "destructive",
+    });
+    return;
+  }
 
-    const fechaFormateada = `${format(date!, "d 'de' MMMM, yyyy", {
-      locale: es,
-    })} a las ${selectedTime}`;
+  // ✅ Validar si ese miércoles está cerrado
+  if (blockedDates.includes(iso)) {
+    toast({
+      title: "Fecha no disponible",
+      description: "Ese miércoles está cerrado. Selecciona otro.",
+      variant: "destructive",
+    });
+    return;
+  }
 
+  // ✅ Validar si la hora está bloqueada por 24h
+  if (lockedTimes.includes(selectedTime!)) {
+    toast({
+      title: "Hora no disponible",
+      description: "Ese horario está bloqueado por 24 horas. Elige otro.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setIsLoading(true);
+
+  const fechaFormateada = `${format(date!, "d 'de' MMMM, yyyy", {
+    locale: es,
+  })} a las ${selectedTime}`;
+
+  try {
+    const res = await fetch("/api/email/cita", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: formData.nombre.trim(),
+        email: formData.email.trim(),
+        telefono: formData.telefono.trim(),
+        fecha: fechaFormateada,
+        dateISO: iso,
+        time: selectedTime,
+      }),
+    });
+
+    // ✅ Parseo seguro (por si alguna vez no viene JSON)
+    let data: any = null;
     try {
-      const res = await fetch("/api/email/cita", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: formData.nombre.trim(),
-          email: formData.email.trim(),
-          telefono: formData.telefono.trim(),
-          fecha: fechaFormateada,
-          dateISO: iso, // ✅ útil para validar del lado del server si luego lo agregas
-          time: selectedTime,
-        }),
-      });
+      data = await res.json();
+    } catch {
+      data = null;
+    }
 
-      const data = await res.json();
+    // ✅ Manejo de errores esperados (ej: 429 límite semanal)
+    if (!res.ok) {
+      const code = data?.code;
+      const msg =
+        code === "EMAIL_WEEKLY_LIMIT"
+          ? "Ya existe una cita registrada con este correo esta semana. Intenta la próxima semana o usa otro correo."
+          : data?.message || "No se pudo reservar la cita.";
 
-      if (!res.ok) {
-        throw new Error(data?.message || "Error al reservar la cita");
-      }
-
-      setIsSubmitted(true);
       toast({
-        title: "¡Cita Reservada!",
-        description: "Te hemos enviado un email de confirmación.",
-      });
-    } catch (error: any) {
-      console.error("Error reserva:", error);
-      toast({
-        title: "Error",
-        description: error?.message || "No se pudo reservar la cita. Inténtalo más tarde.",
+        title: code === "EMAIL_WEEKLY_LIMIT" ? "Límite semanal" : "Error",
+        description: msg,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+
+      return; // 🔥 IMPORTANT: no seguir
     }
-  };
+
+    setIsSubmitted(true);
+    toast({
+      title: "¡Cita Reservada!",
+      description: "Te hemos enviado un email de confirmación.",
+    });
+  } catch (error: any) {
+    console.error("Error reserva:", error);
+    toast({
+      title: "Error",
+      description: "No se pudo reservar la cita. Inténtalo más tarde.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   /* ------------------- PANTALLA DE CONFIRMACIÓN ------------------- */
   if (isSubmitted) {
@@ -283,18 +405,18 @@ export default function ReservarCita() {
                       selected={date}
                       onSelect={(d) => {
                         setDate(d);
-                        setSelectedTime(null); // reset time al cambiar fecha
+                        setSelectedTime(null);
                       }}
                       locale={es}
                       disabled={(d) => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-
+                        const today = startOfDay(new Date());
                         const iso = toISODate(d);
-                        const isBlocked = blockedDates.includes(iso);
 
-                        // ✅ Solo miércoles + futuras + NO bloqueadas
-                        return d <= today || d.getDay() !== 3 || isBlocked;
+                        const isBlocked = blockedDates.includes(iso);
+                        const isAllowedWednesday = iso === allowedWednesdayISO;
+
+                        // ✅ Solo el próximo miércoles (uno) + futuro + NO bloqueado
+                        return d <= today || d.getDay() !== 3 || isBlocked || !isAllowedWednesday;
                       }}
                       className="rounded-xl border border-border pointer-events-auto"
                     />
@@ -302,10 +424,14 @@ export default function ReservarCita() {
 
                   <div className="bg-secondary/50 rounded-lg p-3 mb-4 text-center">
                     <p className="text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">📅 Solo miércoles disponibles</span>
+                      <span className="font-medium text-foreground">
+                        📅 Solo 1 miércoles disponible
+                      </span>
+                      <br />
+                      {format(allowedWednesday, "EEEE d 'de' MMMM, yyyy", { locale: es })}
                       <br />
                       Horario: 9:00 AM - 12:00 PM
-                      {loadingBlockedDates ? (
+                      {loadingBlockedDates || loadingLockedTimes ? (
                         <>
                           <br />
                           <span className="text-xs">Cargando disponibilidad...</span>
@@ -320,23 +446,38 @@ export default function ReservarCita() {
                         <Clock className="h-4 w-4 text-primary" />
                         Horarios Disponibles
                       </Label>
+
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
-                        {horasDisponibles.map((hora) => (
-                          <button
-                            key={hora}
-                            type="button"
-                            onClick={() => setSelectedTime(hora)}
-                            className={cn(
-                              "py-3 px-3 text-sm font-medium rounded-xl border-2 transition-all",
-                              selectedTime === hora
-                                ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105"
-                                : "bg-background border-border text-foreground hover:border-primary hover:bg-primary/5"
-                            )}
-                          >
-                            {hora}
-                          </button>
-                        ))}
+                        {horasDisponibles.map((hora) => {
+                          const isLocked = lockedTimes.includes(hora);
+
+                          return (
+                            <button
+                              key={hora}
+                              type="button"
+                              disabled={isLocked || loadingLockedTimes}
+                              onClick={() => setSelectedTime(hora)}
+                              className={cn(
+                                "py-3 px-3 text-sm font-medium rounded-xl border-2 transition-all",
+                                selectedTime === hora
+                                  ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105"
+                                  : "bg-background border-border text-foreground hover:border-primary hover:bg-primary/5",
+                                (isLocked || loadingLockedTimes) &&
+                                  "opacity-50 cursor-not-allowed hover:border-border hover:bg-background"
+                              )}
+                              title={isLocked ? "Este horario está bloqueado por 24 horas" : ""}
+                            >
+                              {hora} {isLocked ? "🔒" : ""}
+                            </button>
+                          );
+                        })}
                       </div>
+
+                      {lockedTimes.length ? (
+                        <p className="text-xs text-muted-foreground mt-3">
+                          🔒 Algunos horarios están bloqueados por 24 horas luego de una reserva.
+                        </p>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -350,7 +491,10 @@ export default function ReservarCita() {
 
                   <div className="space-y-4 sm:space-y-5">
                     <div className="space-y-2">
-                      <Label htmlFor="nombre" className="text-foreground font-medium flex items-center gap-2">
+                      <Label
+                        htmlFor="nombre"
+                        className="text-foreground font-medium flex items-center gap-2"
+                      >
                         <User className="h-4 w-4 text-muted-foreground" />
                         Nombre Completo
                       </Label>
@@ -367,7 +511,10 @@ export default function ReservarCita() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-foreground font-medium flex items-center gap-2">
+                      <Label
+                        htmlFor="email"
+                        className="text-foreground font-medium flex items-center gap-2"
+                      >
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         Correo Electrónico
                       </Label>
@@ -384,7 +531,10 @@ export default function ReservarCita() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="telefono" className="text-foreground font-medium flex items-center gap-2">
+                      <Label
+                        htmlFor="telefono"
+                        className="text-foreground font-medium flex items-center gap-2"
+                      >
                         <Phone className="h-4 w-4 text-muted-foreground" />
                         Número de Teléfono
                       </Label>
@@ -408,7 +558,9 @@ export default function ReservarCita() {
                             {format(date, "EEEE d 'de' MMMM, yyyy", { locale: es })}
                           </span>
                           <br />
-                          <span className="text-primary font-bold">a las {selectedTime}</span>
+                          <span className="text-primary font-bold">
+                            a las {selectedTime}
+                          </span>
                         </p>
                       </div>
                     )}
@@ -425,7 +577,8 @@ export default function ReservarCita() {
 
                     <div className="bg-secondary/30 rounded-lg p-3">
                       <p className="text-xs text-muted-foreground text-center">
-                        📞 Recuerda llamar al <span className="font-semibold text-foreground">809-912-4201</span>, 24 horas antes para confirmar tu asistencia.
+                        📞 Recuerda llamar al{" "}
+                        <span className="font-semibold text-foreground">809-912-4201</span>, 24 horas antes para confirmar tu asistencia.
                       </p>
                     </div>
 
@@ -443,6 +596,7 @@ export default function ReservarCita() {
           </div>
         </div>
       </section>
+      <Toaster />
     </main>
   );
 }

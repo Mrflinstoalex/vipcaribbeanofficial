@@ -21,6 +21,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 const Aplicar = () => {
   const { toast } = useToast();
@@ -305,6 +306,7 @@ const Aplicar = () => {
             </CardContent>
           </Card>
         </div>
+        <Toaster />
       </section>
     </>
   );

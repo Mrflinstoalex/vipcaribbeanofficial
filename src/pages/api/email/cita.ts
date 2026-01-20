@@ -11,15 +11,62 @@ function applyVars(template: string, vars: Record<string, string>) {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  const { nombre, email, telefono, fecha } = await request.json();
+  const { nombre, email, telefono, fecha, dateISO, time } = await request.json();
 
-  if (!nombre || !email || !telefono || !fecha) {
+  if (!nombre || !email || !telefono || !fecha || !dateISO || !time) {
     return new Response(JSON.stringify({ message: "Datos incompletos" }), {
       status: 400,
+      headers: { "Content-Type": "application/json" },
     });
   }
 
-  /* 📩 Email interno */
+  const wpDomain = (import.meta.env.WP_DOMAIN || "").replace(/\/$/, "");
+  if (!wpDomain) {
+    return new Response(JSON.stringify({ message: "WP_DOMAIN no está definido" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // 1) ✅ Guardar cita en WordPress (primero, para evitar emails si falla por límite)
+  try {
+    const saveRes = await fetch(`${wpDomain}/wp-json/vipc/v1/appointments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        name: String(nombre).trim(),
+        email: String(email).trim(),
+        phone: String(telefono).trim(),
+        appointment_date: String(dateISO).trim(), // YYYY-MM-DD
+        appointment_time: String(time).trim(),    // 9:05 AM
+      }),
+    });
+
+    const saveData = await saveRes.json().catch(() => ({}));
+
+    if (!saveRes.ok) {
+      // ✅ Propagar el status real (ej. 429) + mensaje al frontend
+      return new Response(
+        JSON.stringify({
+          message: saveData?.message || "No se pudo registrar la cita.",
+          code: saveData?.code || "WP_SAVE_FAILED",
+        }),
+        {
+          status: saveRes.status,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  } catch (err) {
+    console.error("Error guardando cita en WP:", err);
+    return new Response(
+      JSON.stringify({ message: "No se pudo registrar la cita. Inténtalo más tarde." }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // 2) ✅ Email interno (solo si el guardado en WP fue OK)
   await transporter.sendMail({
     from: `"Citas Web" <${import.meta.env.EMAIL_USER}>`,
     to: import.meta.env.EMAIL_USER,
@@ -33,17 +80,14 @@ export const POST: APIRoute = async ({ request }) => {
     `,
   });
 
-  // ✅ Traer template de WP
+  // 3) ✅ Traer template de WP
   let tpl: CitaTemplate | null = null;
   try {
-    const wpDomain = (import.meta.env.WP_DOMAIN || "").replace(/\/$/, "");
-    if (wpDomain) {
-      const res = await fetch(
-        `${wpDomain}/wp-json/vipc/v1/email-cita-template?cb=${Date.now()}`,
-        { cache: "no-store" }
-      );
-      if (res.ok) tpl = (await res.json()) as CitaTemplate;
-    }
+    const res = await fetch(
+      `${wpDomain}/wp-json/vipc/v1/email-cita-template?cb=${Date.now()}`,
+      { cache: "no-store" }
+    );
+    if (res.ok) tpl = (await res.json()) as CitaTemplate;
   } catch (e) {
     console.error("Error cargando template cita desde WP:", e);
   }
@@ -68,15 +112,10 @@ export const POST: APIRoute = async ({ request }) => {
   const subjectFromWP = tpl?.subject?.trim();
   const bodyFromWP = tpl?.body_html?.trim();
 
-  const finalSubject = subjectFromWP
-    ? applyVars(subjectFromWP, vars)
-    : fallbackSubject;
+  const finalSubject = subjectFromWP ? applyVars(subjectFromWP, vars) : fallbackSubject;
+  const finalHtml = bodyFromWP ? applyVars(bodyFromWP, vars) : fallbackHtml;
 
-  const finalHtml = bodyFromWP
-    ? applyVars(bodyFromWP, vars)
-    : fallbackHtml;
-
-  /* 📧 Email al usuario */
+  // 4) ✅ Email al usuario (solo si todo fue OK)
   await transporter.sendMail({
     from: `"VIP Caribbean" <${import.meta.env.EMAIL_USER}>`,
     to: email,
@@ -84,5 +123,8 @@ export const POST: APIRoute = async ({ request }) => {
     html: finalHtml,
   });
 
-  return new Response(JSON.stringify({ success: true }));
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 };

@@ -12,6 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+
+
+
+
 export interface Candidato {
   id: number;
   nombre: string;
