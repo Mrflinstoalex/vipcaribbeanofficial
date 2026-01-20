@@ -1,25 +1,27 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import QuienesSomosPage from "@/components/pages/QuienesSomos";
-import { getPageInfo } from '@/lib/wp';
+import { getPageInfo } from "@/lib/wp";
+import { parseQuienesSomos } from "@/lib/parsers/quienesSomos";
+
 export const prerender = false;
 
-let pageData: any = null;
+let data = null;
 let error: string | null = null;
 
 try {
-  pageData = await getPageInfo('quienes-somos');
+  const pageData = await getPageInfo("quienes-somos-2");
+  // 👇 "cocinas" el HTML en un objeto por secciones
+  data = parseQuienesSomos(pageData.contentHtml, pageData.title);
 } catch (e) {
   console.error('Error cargando página "Quiénes Somos":', e);
-  error = 'No se pudo cargar la información de la página en este momento. Por favor, intenta más tarde.';
-  // pageData queda como null
+  error =
+    "No se pudo cargar la información de la página en este momento. Por favor, intenta más tarde.";
 }
+
+
 ---
 
 <Layout>
- <QuienesSomosPage 
-    data={pageData} 
-    error={error} 
-    client:load 
-  />
+ <QuienesSomosPage data={data} error={error} client:load /> 
 </Layout>

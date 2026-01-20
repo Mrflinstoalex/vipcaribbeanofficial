@@ -3,8 +3,25 @@ const domain = import.meta.env.WP_DOMAIN
 const apiUrl = `${domain}/wp-json/wp/v2`
 
 
+export const getPageInfo = async (slug: string) => {
+  const response = await fetch(`${apiUrl}/pages?slug=${slug}`);
+  if (!response.ok) throw new Error("Failed to fetch page info");
 
+  const [data] = await response.json();
+  if (!data) throw new Error(`Page not found for slug "${slug}"`);
 
+  const title =
+    typeof data?.title === "string" ? data.title : (data?.title?.rendered ?? "");
+
+  const contentHtml =
+    typeof data?.content === "string" ? data.content : (data?.content?.rendered ?? "");
+
+  const acf = data?.acf ?? null;
+
+  return { title, contentHtml, acf, slug: data?.slug ?? slug };
+};
+
+/*
 export const getPageInfo = async (slug: string) => {
   const response = await fetch(`${apiUrl}/pages?slug=${slug}`)
 
@@ -14,7 +31,7 @@ export const getPageInfo = async (slug: string) => {
   const [data] = await response.json()
   const {title:{rendered:title}, content:{rendered:content},acf} = data
   return {title, content, acf}
-}
+}*/
 
 
 
