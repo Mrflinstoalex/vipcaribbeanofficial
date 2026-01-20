@@ -258,16 +258,6 @@ export const getUrgentEmpleos = async () => {
 
 
 
-
-
-
-
-
-
-
-
-
-
 const extractFirstImage = (html: string): string | null => {
   // Busca la primera etiqueta <img> y captura el valor de src
   const match = html.match(/<img[^>]+src="([^">]+)"/);
@@ -284,6 +274,8 @@ const extractMedia = (html: string) => {
     videosCount: videos.length,
   };
 };
+
+
 
 export const getAllEventos = async () => {
   const response = await fetch(`${apiUrl}/eventos?per_page=100&_embed`)
@@ -364,22 +356,14 @@ export const getAllEventosSlugs = async () => {
 
 
 
-
-
-
-
-
-const getTaxonomyTerm = (article: any, taxonomy: string) => {
-  const termsGroups = article._embedded?.["wp:term"] || [];
-
+// Helper: encuentra un término en _embed por taxonomy slug
+const getTaxonomyTerm = (post: any, taxonomy: string) => {
+  const termsGroups = post._embedded?.["wp:term"] || [];
   for (const group of termsGroups) {
     for (const term of group) {
-      if (term.taxonomy === taxonomy) {
-        return term;
-      }
+      if (term.taxonomy === taxonomy) return term;
     }
   }
-
   return null;
 };
 
@@ -471,4 +455,91 @@ export const getAllBlogArticlesSlugs = async (): Promise<string[]> => {
     console.error("getAllBlogArticlesSlugs ERROR:", err);
     return [];
   }
+};
+
+
+
+
+export type FaqItem = {
+  id: number;
+  pregunta: string;
+  respuestaHtml: string;
+  order: number;
+};
+
+export type FaqCategoria = {
+  key: string;       // slug de la sección
+  categoria: string; // nombre visible
+  preguntas: FaqItem[];
+};
+
+
+
+
+
+
+// --------------------------------------
+// FETCH FAQs (CPT) + AGRUPAR POR SECCIÓN
+// --------------------------------------
+export const getFaqsGrouped = async (): Promise<FaqCategoria[]> => {
+  // 1) Trae todas las FAQs (con _embed para traer taxonomías)
+  const response = await fetch(`${apiUrl}/faqs?per_page=100&_embed`);
+  if (!response.ok) throw new Error("Failed to fetch FAQs");
+
+  const results = await response.json();
+  if (!Array.isArray(results)) return [];
+
+  // 2) Filtra activos + mapea
+  const faqs = results
+    .filter((p: any) => {
+      // si no existe acf, asumimos true
+      const active = p.acf?.faq_is_active;
+      return active === undefined ? true : Boolean(active);
+    })
+    .map((p: any) => {
+      const section = getTaxonomyTerm(p, "faq_section"); // taxonomy slug
+      const order =
+        Number(p.acf?.faq_order ?? 0) ||
+        Number(p.menu_order ?? 0) ||
+        0;
+
+      return {
+        id: p.id,
+        pregunta: p.title?.rendered ?? "",
+        respuestaHtml: p.content?.rendered ?? "",
+        order,
+        sectionSlug: section?.slug ?? "sin-seccion",
+        sectionName: section?.name ?? "Sin sección",
+      };
+    });
+
+  // 3) Agrupar por sección
+  const grouped: Record<string, FaqCategoria> = {};
+
+  for (const f of faqs) {
+    const key = f.sectionSlug;
+    grouped[key] ??= {
+      key,
+      categoria: f.sectionName,
+      preguntas: [],
+    };
+
+    grouped[key].preguntas.push({
+      id: f.id,
+      pregunta: f.pregunta,
+      respuestaHtml: f.respuestaHtml,
+      order: f.order,
+    });
+  }
+
+  // 4) Ordenar preguntas dentro de cada sección
+  for (const cat of Object.values(grouped)) {
+    cat.preguntas.sort((a, b) => a.order - b.order);
+  }
+
+  // 5) Ordenar secciones (por nombre). Si quieres un orden fijo 1,2,3,
+  //    se puede forzar con un array (te lo dejo abajo en nota).
+  return Object.values(grouped).sort((a, b) =>
+    a.categoria.localeCompare(b.categoria, "es")
+  );
 };
