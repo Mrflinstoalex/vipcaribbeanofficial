@@ -105,7 +105,7 @@ const PreguntasFrecuentes = ({ categorias, error }: PreguntasFrecuentesProps) =>
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="https://wa.me/18095551234"
+              href="https://wa.me/18099707669"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 bg-gradient-coral text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
@@ -113,7 +113,7 @@ const PreguntasFrecuentes = ({ categorias, error }: PreguntasFrecuentesProps) =>
               Contactar por WhatsApp
             </a>
             <a
-              href="mailto:info@vipcaribbean.com"
+              href="mailto:vipcaribbean@yahoo.com"
               className="inline-flex items-center justify-center gap-2 border border-border bg-background text-foreground px-6 py-3 rounded-lg font-medium hover:bg-secondary transition-colors"
             >
               Enviar Email

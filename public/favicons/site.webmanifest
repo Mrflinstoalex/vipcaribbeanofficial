@@ -1,6 +1,6 @@
 {
   "name": "VIP Caribbean",
-  "short_name": "VIPCaribbean",
+  "short_name": "VIP Caribbean",
   "icons": [
     {
       "src": "/favicons/web-app-manifest-192x192.png",
@@ -15,7 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
   "display": "standalone"
 }
