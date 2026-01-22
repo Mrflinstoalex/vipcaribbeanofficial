@@ -425,7 +425,7 @@ export default function ReservarCita() {
                   <div className="bg-secondary/50 rounded-lg p-3 mb-4 text-center">
                     <p className="text-sm text-muted-foreground">
                       <span className="font-medium text-foreground">
-                        📅 Solo 1 miércoles disponible
+                        📅 Las pre-entrevistas se realizan los miércoles y se habilitan semana a semana.
                       </span>
                       <br />
                       {format(allowedWednesday, "EEEE d 'de' MMMM, yyyy", { locale: es })}
@@ -565,21 +565,10 @@ export default function ReservarCita() {
                       </div>
                     )}
 
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full h-14 text-base bg-gradient-coral hover:opacity-90 text-primary-foreground shadow-coral"
-                      disabled={!isFormValid || isLoading}
-                    >
-                      <CalendarDays className="mr-2 h-5 w-5" />
-                      {isLoading ? "Reservando..." : "Confirmar Reserva"}
-                    </Button>
+                    
 
-                    <div className="bg-secondary/30 rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground text-center">
-                        📞 Recuerda llamar al{" "}
-                        <span className="font-semibold text-foreground">809-912-4201</span>, 24 horas antes para confirmar tu asistencia.
-                      </p>
+                    <div className="rounded-lg p-3">
+                  
                     </div>
 
                     {!import.meta.env.PUBLIC_WP_DOMAIN ? (
@@ -592,6 +581,148 @@ export default function ReservarCita() {
                   </div>
                 </div>
               </div>
+
+
+
+   {/* Terms and Conditions - Full Width Below Form */}
+<div className="mt-8 bg-card rounded-2xl shadow-card border border-border p-6 md:p-8">
+  <div className="flex items-center gap-3 mb-6">
+    <span className="text-2xl">🌴</span>
+    <h3 className="text-xl font-bold text-foreground">
+      VIP Caribbean: Políticas para la Cita de Pre-Entrevista
+    </h3>
+  </div>
+
+  <p className="text-muted-foreground mb-6">
+    Al reservar su cita, el candidato acepta los siguientes términos y condiciones del proceso:
+  </p>
+
+  {/* Section 1 */}
+  <div className="mb-6">
+    <h4 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-3">
+      <span>📝</span> Descripción del Servicio de Pre-Entrevista
+    </h4>
+
+    <div className="space-y-3 text-sm text-muted-foreground pl-7">
+      <p>
+        Este es un proceso presencial diseñado para validar su perfil y preparar su postulación.
+        El día de su cita se realizarán las siguientes acciones:
+      </p>
+
+      <ul className="list-disc pl-5 space-y-1">
+        <li>Revisión de documentos: Se verificarán todos los requisitos solicitados previamente.</li>
+        <li>Creación de archivo: Se le abrirá un expediente oficial en nuestra oficina.</li>
+        <li>Evaluación de área: Se le realizará la evaluación correspondiente al área de su interés.</li>
+        <li>Formas de aplicación: Se le entregarán los formularios oficiales que debe completar.</li>
+        <li>Pre-entrevista: Se le realizará la entrevista de depuración ese mismo día.</li>
+      </ul>
+    </div>
+  </div>
+
+  {/* Section 2 */}
+  <div className="mb-6">
+    <h4 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-3">
+      <span>⚠️</span> Requisitos Indispensables (Sin excepción)
+    </h4>
+
+    <div className="space-y-3 text-sm text-muted-foreground pl-7">
+      <p>
+        <strong className="text-foreground">Currículum en Inglés:</strong> Este proceso es exclusivo
+        para quienes ya enviaron su currículum en inglés. Si no lo ha enviado, no puede presentarse
+        a esta cita.
+      </p>
+
+      <p>
+        <strong className="text-foreground">Documentación Completa:</strong> El candidato debe
+        presentarse con TODOS los requisitos que le pedimos cuando envió su currículum. De no
+        tenerlos todos, no procederemos con la pre-entrevista y tendrá que re-agendar su cita.
+      </p>
+    </div>
+  </div>
+
+  {/* Section 3 */}
+  <div className="mb-6">
+    <h4 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-3">
+      <span>🗃️</span> Política de Formalización y Apertura de Registro
+    </h4>
+
+    <div className="space-y-3 text-sm text-muted-foreground pl-7">
+      <p>
+        <strong className="text-foreground">Activación de Expediente:</strong> La confirmación de
+        esta cita implica que el candidato entiende que, para proceder con la evaluación, se
+        requiere completar un trámite de gestión administrativa y apertura de registro oficial.
+        Este paso es indispensable para la emisión de sus materiales de aplicación y la validación
+        de su aplicacion en nuestro sistema.
+      </p>
+
+      <p>
+        Este proceso administrativo es el que garantiza la custodia de su información, la gestión
+        de los recursos y la formalización total de su candidatura en nuestro sistema de selección.
+      </p>
+    </div>
+  </div>
+
+  {/* Confirmation Call Notice */}
+  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
+    <div className="flex items-start gap-3">
+      <span className="text-xl">📞</span>
+      <div>
+        <p className="font-bold text-primary mb-1">AVISO DE VITAL IMPORTANCIA</p>
+        <p className="text-sm text-foreground mb-2">
+          ES DE VITAL IMPORTANCIA LLAMAR 24 HORAS ANTES PARA CONFIRMAR SU ASISTENCIA.
+        </p>
+        <p className="text-sm font-semibold text-foreground">
+          SIN ESTA CONFIRMACIÓN TELEFÓNICA, SU CITA NO SERÁ PROCESADA.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* Section 4 */}
+  <div className="mb-6">
+    <h4 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-3">
+      <span>✅</span> Aceptación de Términos
+    </h4>
+
+    <div className="text-sm text-muted-foreground pl-7">
+      <p className="mb-2">Al hacer clic en el botón confirmar reserva, el candidato declara que:</p>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>
+          Ha leído y entendido que la formalización administrativa es el paso final necesario tras
+          la depuración del entrevistador para activar su expediente.
+        </li>
+        <li>Se compromete a presentarse con la documentación completa requerida.</li>
+        <li>
+          Reconoce que la confirmación telefónica previa es un requisito indispensable para
+          mantener su turno.
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  {/* Submit Button */}
+  <Button
+    type="submit"
+    size="lg"
+    className="w-full h-14 text-base bg-gradient-coral hover:opacity-90 text-primary-foreground shadow-coral"
+    disabled={!isFormValid || isLoading}
+  >
+    <CalendarDays className="mr-2 h-5 w-5" />
+    {isLoading ? "Reservando..." : "Confirmar Reserva"}
+  </Button>
+
+  <div className="bg-secondary/30 rounded-lg p-3 mt-4">
+    <p className="text-xs text-muted-foreground text-center">
+      📞 Recuerda llamar al{" "}
+      <span className="font-semibold text-foreground">809-912-4201</span>, 24 horas antes para
+      confirmar tu asistencia.
+    </p>
+  </div>
+</div>
+
+
+
+              
             </form>
           </div>
         </div>
