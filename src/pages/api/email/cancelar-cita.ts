@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
       <p><b>Hora:</b> ${escHtml(appointment_time)}</p>
     `,
     });
-
+    
     // Email de confirmación al usuario
     await transporter.sendMail({
         from: `"VIP Caribbean" <${import.meta.env.EMAIL_USER}>`,
