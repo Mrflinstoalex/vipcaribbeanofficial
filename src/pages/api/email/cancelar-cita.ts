@@ -4,6 +4,12 @@ import { transporter } from "./_mailer";
 
 export const prerender = false;
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "https://wheat-rat-997991.hostingersite.com",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, x-cancel-secret",
+};
+
 function escHtml(s: string) {
   return s
     .replace(/&/g, "&amp;")
@@ -13,13 +19,18 @@ function escHtml(s: string) {
     .replace(/'/g, "&#39;");
 }
 
+// Responder al preflight OPTIONS que hace el navegador
+export const OPTIONS: APIRoute = async () => {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+};
+
 export const POST: APIRoute = async ({ request }) => {
-  // 🔒 Verificar clave secreta para permitir llamadas server-to-server
+  // 🔒 Verificar clave secreta
   const secret = request.headers.get("x-cancel-secret");
   if (!secret || secret !== import.meta.env.CANCEL_SECRET) {
     return new Response(JSON.stringify({ message: "No autorizado." }), {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
   }
 
@@ -29,7 +40,7 @@ export const POST: APIRoute = async ({ request }) => {
   } catch {
     return new Response(JSON.stringify({ message: "Payload JSON inválido." }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
   }
 
@@ -38,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!name || !email || !appointment_date || !appointment_time) {
     return new Response(JSON.stringify({ message: "Datos incompletos." }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
   }
 
@@ -76,6 +87,6 @@ export const POST: APIRoute = async ({ request }) => {
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
 };
