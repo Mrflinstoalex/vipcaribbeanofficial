@@ -14,8 +14,16 @@ function escHtml(s: string) {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  let body: Record<string, string>;
+  // 🔒 Verificar clave secreta para permitir llamadas server-to-server
+  const secret = request.headers.get("x-cancel-secret");
+  if (!secret || secret !== import.meta.env.CANCEL_SECRET) {
+    return new Response(JSON.stringify({ message: "No autorizado." }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
+  let body: Record<string, string>;
   try {
     body = await request.json();
   } catch {
