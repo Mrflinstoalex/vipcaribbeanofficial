@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm add:*)",
+      "Bash(pnpm test:run)",
+      "Bash(rm -rf src/test vitest.config.ts)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm exec:*)",
+      "Bash(pnpm test:*)",
+      "Read(//c/Users/josia/Downloads/**)",
+      "Bash(ls /c/Users/josia/Downloads/vipcaribbeanofficial/studio/.env*)"
+    ]
+  }
+}

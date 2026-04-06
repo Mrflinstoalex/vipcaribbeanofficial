@@ -1,0 +1,6 @@
+---
+import Header from '@/components/Header';
+const pathname = Astro.url.pathname;
+---
+
+<Header pathname={pathname} client:load />

@@ -1,0 +1,24 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import QuienesSomosPage from "@/components/pages/QuienesSomos";
+import { getQuienesSomosData } from "@/lib/cms";
+
+export const prerender = false;
+
+let data = null;
+let error: string | null = null;
+
+try {
+  data = await getQuienesSomosData();
+  if (!data) error = "No se pudo cargar la información de la página en este momento.";
+} catch (e) {
+  console.error('Error cargando página "Quiénes Somos":', e);
+  error = "No se pudo cargar la información de la página en este momento. Por favor, intenta más tarde.";
+}
+
+
+---
+
+<Layout>
+ <QuienesSomosPage data={data} error={error} client:load /> 
+</Layout>

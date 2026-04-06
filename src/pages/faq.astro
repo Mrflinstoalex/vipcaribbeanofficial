@@ -1,0 +1,26 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import PreguntasFrecuentes from "@/components/pages/PreguntasFrecuentes";
+import { getFaqsGrouped, type FaqCategoria } from "@/lib/cms";
+
+export const prerender = false;
+
+let categorias: FaqCategoria[] = [];
+let error: string | null = null;
+
+try {
+  categorias = await getFaqsGrouped();
+} catch (e) {
+  console.error("Error cargando datos de FAQs:", e);
+  error = "No se pudieron cargar las preguntas frecuentes en este momento.";
+}
+---
+
+<Layout>
+        <main transition:animate="slide" class="pt-24 pb-16">
+
+     
+    <PreguntasFrecuentes categorias={categorias} error={error} client:load />
+
+     </main>
+</Layout>

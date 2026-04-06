@@ -1,0 +1,109 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+import Hero from "@/components/Hero";
+import Services from "@/components/Services";
+import Partners from "@/components/Partners";
+import Process from "@/components/Process";
+import CTA from "@/components/CTA";
+import AppointmentSection from "@/components/AppointmentSection";
+import UrgentJobs from "@/components/UrgentJobs";
+
+import {
+  Briefcase,
+  GraduationCap,
+  FileCheck,
+  Users,
+  Globe,
+  Shield,
+} from "lucide-react";
+
+import { getLandingPageData, getUrgentEmpleos } from "@/lib/cms";
+
+export const prerender = false;
+
+
+
+let landingpageinfo: any = null;
+let empleosUrgentes: any[] = [];
+
+try {
+  landingpageinfo = await getLandingPageData();
+} catch (error) {
+  console.error("Error getLandingPageData:", error);
+}
+
+try {
+  empleosUrgentes = await getUrgentEmpleos();
+} catch (error) {
+  console.error("Error getUrgentEmpleos:", error);
+}
+
+
+const acf = landingpageinfo ?? {};
+
+const HeroData = {
+  titulo: acf.hero_title ?? "",
+  subtitle: acf.hero_subtitle ?? "",
+  image: acf.hero_image ?? null,
+  mediaType: acf.hero_media_type ?? "image",
+  video: acf.hero_video ?? null,
+  rating: acf.hero_rating ?? null,
+  reviews: acf.hero_reviews ?? null,
+  numeroEmpleados: acf.hero_numero_de_empleados ?? null,
+  lineasCrucero: acf.hero_lineas_de_crucero ?? null,
+  proximaLinea: acf.hero_linea_de_cruceros_proxima_contratacion ?? null,
+  proximaFecha: acf.hero_proxima_contratacion_fecha ?? null,
+};
+
+const CTAData = {
+  titulo: acf.cta_titulo ?? "",
+  descripcion: acf.cta_descripcion ?? "",
+  phone: acf.cta_phone ?? "",
+  email: acf.cta_email ?? "",
+};
+
+const ServicesData = {
+  titulo: acf.nuestro_servicios_titulo ?? "",
+  descripcion: acf.nuestro_servicios_descripcion ?? "",
+  servicios: (acf.servicios ?? []).map((s: any, i: number) => ({
+    icon: [Briefcase, GraduationCap, FileCheck, Users, Globe, Shield][i] ?? Briefcase,
+    titulo: s.titulo ?? "",
+    descripcion: s.descripcion ?? "",
+  })),
+};
+
+const AliadosData = {
+  titulo: acf.nuestros_aliados_titulo ?? "",
+  descripcion: acf.nuestros_aliados_descripcion ?? "",
+  aliados: (acf.aliados ?? []).map((a: any) => ({
+    nombre: a.nombre ?? "",
+    logo: a.logo ?? null,
+  })),
+};
+
+const ProcessData = {
+  titulo: acf.como_funciona_titulo ?? "",
+  descripcion: acf.como_funciona_description ?? "",
+  pasos: (acf.pasos ?? []).map((p: any) => ({
+    titulo: p.titulo ?? "",
+    descripcion: p.descripcion ?? "",
+  })),
+};
+---
+
+
+
+
+
+<Layout>
+  {HeroData.titulo && <Hero data={HeroData} />}
+  {empleosUrgentes.length > 0 && <UrgentJobs data={empleosUrgentes} />}
+  <AppointmentSection />
+  {ServicesData.servicios.length > 0 && <Services data={ServicesData} />}
+  {AliadosData.aliados.length > 0 && <Partners data={AliadosData} />}
+  {ProcessData.pasos.length > 0 && <Process data={ProcessData} />}
+
+
+  <CTA data={CTAData} />
+</Layout>

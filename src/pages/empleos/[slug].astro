@@ -1,0 +1,34 @@
+---
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import EmpleoDetalle from "@/components/pages/EmpleoDetalle";
+import { getEmpleoBySlug } from "@/lib/cms";
+
+
+
+const { slug } = Astro.params;
+if (!slug) {
+  throw new Error("Missing slug parameter");
+}
+
+let empleo: any = null;
+let error: string | null = null;
+
+try {
+  empleo = await getEmpleoBySlug(slug);
+} catch (e) {
+  console.error(`Error cargando empleo con slug "${slug}":`, e);
+  error = 'No se pudo cargar la vacante en este momento. Por favor, intenta más tarde.';
+  // empleo queda como null
+}
+---
+
+<Layout>
+  <EmpleoDetalle 
+    empleo={empleo} 
+    error={error} 
+    slug={slug}
+    client:load 
+  />
+</Layout>

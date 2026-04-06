@@ -1,0 +1,26 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import ContactoComp from "@/components/pages/Contacto";
+
+import { getContactoData } from '@/lib/cms';
+export const prerender = false;
+
+let acfData: any = {};
+let error: string | null = null;
+
+try {
+  acfData = await getContactoData();
+} catch (e) {
+  console.error('Error cargando página de Contacto:', e);
+  error = 'No se pudo cargar la información de contacto en este momento. Estamos trabajando para solucionarlo.';
+  // acfData queda como objeto vacío
+}
+---
+
+<Layout>
+<ContactoComp 
+    data={acfData} 
+    error={error} 
+    client:load 
+  />
+</Layout>

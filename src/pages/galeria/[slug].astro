@@ -1,0 +1,37 @@
+---
+export const prerender = false;
+
+import EventoDetalle from "@/components/pages/EventoDetalle";
+
+import Layout from "@/layouts/Layout.astro";
+import { getEventoMedia } from "@/lib/eventoUtils";
+
+
+const { slug } = Astro.params;
+
+let evento: any = null;
+let error: string | null = null;
+if (!slug) {
+  throw new Error("Missing slug parameter");
+}
+try {
+  evento = await getEventoMedia(slug);
+} catch (e) {
+  console.error(`Error cargando evento con slug "${slug}":`, e);
+  error = 'No se pudo cargar el evento en este momento. Por favor, intenta más tarde.';
+}
+
+---
+
+<Layout>
+ 
+  <EventoDetalle 
+    evento={evento} 
+        slug={slug}
+
+    error={error} 
+    client:load 
+  />
+
+
+</Layout>

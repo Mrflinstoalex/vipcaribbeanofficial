@@ -1,0 +1,120 @@
+---
+import Footer from "@/components/Footer";
+import "../styles/global.css";
+import HeaderWrapper from "@/components/HeaderWrapper.astro";
+import Analytics from "@vercel/analytics/astro";
+import SpeedInsights from "@vercel/speed-insights/astro";
+import { getPageInfo } from "@/lib/cms";
+import { ClientRouter } from "astro:transitions";
+
+let footerPage: any = { acf: null };
+try { footerPage = await getPageInfo("footer"); } catch {}
+const footerAcf = footerPage?.acf ?? {};
+
+// Dominio base (SIN slash final)
+const SITE_URL =
+  import.meta.env.SITE_URL?.replace(/\/$/, "") ||
+  "https://www.vipcaribbeanoffice.com";
+
+// Open Graph Image (debe existir en /public)
+const OG_IMAGE = `${SITE_URL}/og-vipcaribbean.png`;
+---
+
+<!doctype html>
+<html lang="es-DO">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={SITE_URL} />
+
+    <!-- SEO -->
+    <title>Trabajo en Cruceros | Agencia de Empleo en RD – VIP Caribbean</title>
+    <meta
+      name="description"
+      content="Consigue trabajo en cruceros con VIP Caribbean, la agencia líder en República Dominicana. Vacantes en Disney Cruise Line, Virgin Voyages, Costa y más. Aplica hoy."
+    />
+    <meta name="author" content="VIP Caribbean" />
+    <meta
+      name="keywords"
+      content="trabajo en cruceros, empleo en cruceros, agencia de empleo en cruceros, trabajar en barcos, cruceros desde RD, trabajo internacional"
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+
+    <!-- Open Graph -->
+    <meta
+      property="og:title"
+      content="Trabajo en Cruceros desde RD | VIP Caribbean"
+    />
+    <meta
+      property="og:description"
+      content="La agencia líder en República Dominicana para conseguir trabajo en cruceros internacionales."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content={OG_IMAGE} />
+    <meta property="og:url" content={SITE_URL} />
+    <meta property="og:locale" content="es_DO" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Trabajo en Cruceros | VIP Caribbean" />
+    <meta
+      name="twitter:description"
+      content="Conecta con las mejores líneas de cruceros y trabaja en el extranjero desde RD."
+    />
+    <meta name="twitter:image" content={OG_IMAGE} />
+
+    <!-- Favicons -->
+    <link rel="icon" href="/favicons/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/favicons/favicon-96x96.png"
+      sizes="96x96"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="/favicons/apple-touch-icon.png"
+      sizes="180x180"
+    />
+    <link rel="manifest" href="/favicons/site.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Astro View Transitions -->
+    <ClientRouter />
+
+    <!-- Schema.org: Organization -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "VIP Caribbean",
+        "url": "https://www.vipcaribbeanoffice.com",
+        "logo": "https://www.vipcaribbeanoffice.com/vipcaribbean-logo-base.png",
+        "description": "Agencia de empleo en cruceros en República Dominicana."
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="min-h-screen bg-background">
+      <HeaderWrapper />
+      <slot />
+      <Footer acf={footerAcf} />
+    </div>
+
+    <SpeedInsights />
+    <Analytics />
+
+  </body>
+</html>
