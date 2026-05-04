@@ -9,6 +9,7 @@ const Header = ({ pathname }: { pathname: string }) => {
     { label: "Inicio", href: "/" },
     { label: "Empleos", href: "/empleos" },
     { label: "Resultados", href: "/resultados" },
+    { label: "Blog", href: "/blog" },
     { label: "Galería", href: "/galeria" },
     { label: "Quiénes Somos", href: "/quienes-somos" },
 
