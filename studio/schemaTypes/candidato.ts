@@ -12,6 +12,11 @@ export const candidato = defineType({
       validation: (R) => R.required(),
     }),
     defineField({
+      name: "email",
+      title: "Correo electrónico",
+      type: "string",
+    }),
+    defineField({
       name: "posicion",
       title: "Posición aplicada",
       type: "string",
@@ -20,16 +25,8 @@ export const candidato = defineType({
     defineField({
       name: "estado",
       title: "Estado",
-      type: "string",
-      options: {
-        list: [
-          { title: "Pendiente",  value: "pendiente" },
-          { title: "Aprobado",   value: "aprobado" },
-          { title: "Rechazado",  value: "rechazado" },
-        ],
-        layout: "radio",
-      },
-      initialValue: "pendiente",
+      type: "reference",
+      to: [{ type: "estadoCandidato" }],
       validation: (R) => R.required(),
     }),
     defineField({
@@ -52,15 +49,13 @@ export const candidato = defineType({
     select: {
       title: "nombre",
       subtitle: "posicion",
-      estado: "estado",
+      estadoNombre: "estado.nombre",
       fecha: "fechaEntrevista",
     },
-    prepare({ title, subtitle, estado, fecha }) {
-      const badge =
-        estado === "aprobado" ? "✅" : estado === "rechazado" ? "❌" : "⏳";
+    prepare({ title, subtitle, estadoNombre, fecha }) {
       return {
-        title: `${badge} ${title}`,
-        subtitle: `${subtitle} — ${fecha ?? "Sin fecha"}`,
+        title,
+        subtitle: `${subtitle} · ${estadoNombre ?? "Sin estado"} — ${fecha ?? "Sin fecha"}`,
       };
     },
   },

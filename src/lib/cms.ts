@@ -119,7 +119,7 @@ export const getAllCandidatos = async () => {
       _id,
       nombre,
       posicion,
-      estado,
+      "estado": estado->nombre,
       fechaEntrevista
     }`
   );
@@ -191,7 +191,9 @@ const EMPLEO_PROJECTION = `
   "categoria": categoria->nombre,
   "categoriaSlug": categoria->slug.current,
   duracionContrato,
-  urgente
+  salario,
+  urgente,
+  bloqueado
 `;
 
 const mapEmpleo = (e: any) => ({
@@ -207,7 +209,9 @@ const mapEmpleo = (e: any) => ({
   },
   categoria: e.categoria ?? null,
   duracion_del_contrato: e.duracionContrato ?? null,
+  salario: e.salario ?? null,
   urgente: e.urgente ?? false,
+  bloqueado: e.bloqueado ?? false,
 });
 
 export const getAllEmpleos = async () => {
@@ -236,6 +240,13 @@ export const getEmpleoBySlug = async (slug: string) => {
 export const getUrgentEmpleos = async () => {
   const results = await client.fetch(
     `*[_type == "empleo" && urgente == true] | order(_createdAt desc) { ${EMPLEO_PROJECTION} }`
+  );
+  return results.map(mapEmpleo);
+};
+
+export const getEmpleosDisponibles = async () => {
+  const results = await client.fetch(
+    `*[_type == "empleo" && bloqueado != true] | order(_createdAt desc) { ${EMPLEO_PROJECTION} }`
   );
   return results.map(mapEmpleo);
 };
@@ -583,4 +594,27 @@ export const getFaqsGrouped = async (): Promise<FaqCategoria[]> => {
   return Object.values(grouped).sort((a, b) =>
     a.categoria.localeCompare(b.categoria, "es")
   );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEO GLOBAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const getSeoGlobal = async (): Promise<{
+  defaultTitle: string;
+  defaultDescription: string;
+  defaultOgImage: string | null;
+  siteName: string;
+  keywords: string;
+} | null> => {
+  const data = await client.fetch(
+    `*[_type == "seoGlobal"][0] {
+      defaultTitle,
+      defaultDescription,
+      "defaultOgImage": defaultOgImage.asset->url,
+      siteName,
+      keywords
+    }`
+  );
+  return data ?? null;
 };

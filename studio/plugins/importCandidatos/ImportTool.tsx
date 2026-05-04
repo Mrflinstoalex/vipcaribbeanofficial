@@ -2,39 +2,71 @@ import React, { useState, useCallback, useRef } from "react";
 import { useClient } from "sanity";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
-
-type EstadoValido = "pendiente" | "aprobado" | "rechazado";
 
 interface CandidatoRow {
   nombre: string;
   posicion: string;
-  estado: EstadoValido;
-  fechaEntrevista: string; // YYYY-MM-DD
+  estadoNombre: string;
+  fechaEntrevista: string;
+  email?: string;
   _error?: string;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Zustand store — persiste en localStorage ──────────────────────────────────
 
-/** Normaliza el estado a uno de los tres valores válidos del schema */
-function normalizarEstado(raw: string): EstadoValido {
-  const s = (raw ?? "").toLowerCase().trim();
-  if (s.includes("aprobad") || s === "approved" || s === "ok") return "aprobado";
-  if (s.includes("rechazad") || s === "rejected" || s === "no") return "rechazado";
-  return "pendiente";
+interface ImportStore {
+  running: boolean;
+  progreso: number; // 0–100
+  total: number;
+  ok: number;
+  errores: number;
+  done: boolean;
+  iniciar: (total: number) => void;
+  actualizar: (progreso: number, ok: number, errores: number) => void;
+  finalizar: (ok: number, errores: number) => void;
+  limpiar: () => void;
 }
 
-/**
- * Acepta varios formatos de fecha:
- *   DD/MM/YYYY  →  2025-12-31
- *   MM/DD/YYYY  →  detectado si día > 12
- *   YYYY-MM-DD  →  pasa directo
- *   número Excel serial  →  convertido
- */
+const useImportStore = create<ImportStore>()(
+  persist(
+    (set) => ({
+      running: false,
+      progreso: 0,
+      total: 0,
+      ok: 0,
+      errores: 0,
+      done: false,
+
+      iniciar: (total) =>
+        set({ running: true, progreso: 0, total, ok: 0, errores: 0, done: false }),
+
+      actualizar: (progreso, ok, errores) =>
+        set({ progreso, ok, errores }),
+
+      finalizar: (ok, errores) =>
+        set({ running: false, progreso: 100, ok, errores, done: true }),
+
+      limpiar: () =>
+        set({ running: false, progreso: 0, total: 0, ok: 0, errores: 0, done: false }),
+    }),
+    {
+      name: "vipc-import-progress",
+      // Al recargar la página no puede haber un import en curso — descartamos ese estado
+      onRehydrateStorage: () => (state) => {
+        if (state?.running) state.limpiar();
+      },
+    }
+  )
+);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function normalizarFecha(raw: string | number): string {
   if (typeof raw === "number") {
-    // Fecha serial de Excel
     const date = XLSX.SSF.parse_date_code(raw);
     if (!date) return "";
     const m = String(date.m).padStart(2, "0");
@@ -43,25 +75,18 @@ function normalizarFecha(raw: string | number): string {
   }
   const s = String(raw ?? "").trim();
   if (!s) return "";
-
-  // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-  // DD/MM/YYYY o MM/DD/YYYY
   const parts = s.split(/[\/\-\.]/);
   if (parts.length === 3) {
     const [a, b, c] = parts.map(Number);
     if (c > 31) {
-      // MM/DD/YYYY
       return `${c}-${String(a).padStart(2, "0")}-${String(b).padStart(2, "0")}`;
     }
-    // DD/MM/YYYY
     return `${c}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
   }
   return s;
 }
 
-/** Busca la columna correcta sin importar mayúsculas o variaciones de nombre */
 function buscarColumna(row: Record<string, any>, opciones: string[]): string {
   const keys = Object.keys(row);
   for (const opcion of opciones) {
@@ -73,7 +98,6 @@ function buscarColumna(row: Record<string, any>, opciones: string[]): string {
   return "";
 }
 
-/** Convierte una fila del archivo al formato del schema de candidato */
 function mapearFila(row: Record<string, any>): CandidatoRow {
   const nombre = String(
     buscarColumna(row, ["nombre", "name", "candidato", "full name"])
@@ -90,9 +114,17 @@ function mapearFila(row: Record<string, any>): CandidatoRow {
     "date",
     "interview date",
   ]);
+  const emailRaw = buscarColumna(row, [
+    "email",
+    "correo",
+    "e-mail",
+    "mail",
+    "correo electrónico",
+  ]);
 
-  const estado = normalizarEstado(String(estadoRaw));
+  const estadoNombre = String(estadoRaw).trim() || "Pendiente";
   const fechaEntrevista = normalizarFecha(fechaRaw as string);
+  const email = String(emailRaw).trim() || undefined;
 
   const _error = !nombre
     ? "Falta el nombre"
@@ -102,13 +134,11 @@ function mapearFila(row: Record<string, any>): CandidatoRow {
     ? "Fecha inválida"
     : undefined;
 
-  return { nombre, posicion, estado, fechaEntrevista, _error };
+  return { nombre, posicion, estadoNombre, fechaEntrevista, email, _error };
 }
 
-/** Parsea un archivo CSV o XLSX y devuelve filas mapeadas */
 async function parsearArchivo(file: File): Promise<CandidatoRow[]> {
   const extension = file.name.split(".").pop()?.toLowerCase();
-
   if (extension === "csv") {
     return new Promise((resolve) => {
       Papa.parse(file, {
@@ -120,8 +150,6 @@ async function parsearArchivo(file: File): Promise<CandidatoRow[]> {
       });
     });
   }
-
-  // XLSX / XLS
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -137,18 +165,16 @@ export function ImportTool() {
   const client = useClient({ apiVersion: "2024-01-01" });
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const { running, progreso, total, ok, errores, done, iniciar, actualizar, finalizar, limpiar } =
+    useImportStore();
+
   const [candidatos, setCandidatos] = useState<CandidatoRow[]>([]);
   const [nombreArchivo, setNombreArchivo] = useState<string>("");
-  const [importando, setImportando] = useState(false);
-  const [progreso, setProgreso] = useState(0);
-  const [resultado, setResultado] = useState<{
-    ok: number;
-    errores: number;
-  } | null>(null);
   const [dragging, setDragging] = useState(false);
 
+  const resultado = done && !running ? { ok, errores } : null;
+
   const procesarArchivo = useCallback(async (file: File) => {
-    setResultado(null);
     setNombreArchivo(file.name);
     const filas = await parsearArchivo(file);
     setCandidatos(filas);
@@ -171,59 +197,172 @@ export function ImportTool() {
 
   const importar = async () => {
     if (!validos.length) return;
-    setImportando(true);
-    setProgreso(0);
-    let ok = 0;
-    let errores = 0;
+
+    iniciar(validos.length);
+    let okCount = 0;
+    let errCount = 0;
+
+    const estadosExistentes: { _id: string; nombre: string }[] =
+      await client.fetch(`*[_type == "estadoCandidato"]{_id, nombre}`);
+    const estadoMap = new Map<string, string>(
+      estadosExistentes.map((e) => [e.nombre.toLowerCase().trim(), e._id])
+    );
+
+    const resolverEstado = async (nombreEstado: string): Promise<string> => {
+      const key = nombreEstado.toLowerCase().trim();
+      if (estadoMap.has(key)) return estadoMap.get(key)!;
+      const doc = await client.create({
+        _type: "estadoCandidato",
+        nombre: nombreEstado,
+      });
+      estadoMap.set(key, doc._id);
+      return doc._id;
+    };
 
     for (let i = 0; i < validos.length; i++) {
       const c = validos[i];
       try {
+        const estadoId = await resolverEstado(c.estadoNombre);
         await client.create({
           _type: "candidato",
           nombre: c.nombre,
           posicion: c.posicion,
-          estado: c.estado,
+          estado: { _type: "reference", _ref: estadoId },
           fechaEntrevista: c.fechaEntrevista,
+          ...(c.email ? { email: c.email } : {}),
         });
-        ok++;
+        okCount++;
       } catch {
-        errores++;
+        errCount++;
       }
-      setProgreso(Math.round(((i + 1) / validos.length) * 100));
+      actualizar(Math.round(((i + 1) / validos.length) * 100), okCount, errCount);
     }
 
-    setImportando(false);
-    setResultado({ ok, errores });
+    finalizar(okCount, errCount);
     setCandidatos([]);
     setNombreArchivo("");
   };
 
-  const limpiar = () => {
+  const handleLimpiar = () => {
     setCandidatos([]);
     setNombreArchivo("");
-    setResultado(null);
+    limpiar();
     if (fileRef.current) fileRef.current.value = "";
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ padding: "2rem", maxWidth: 900, margin: "0 auto", fontFamily: "sans-serif" }}>
+    <div
+      style={{
+        padding: "2rem",
+        maxWidth: 900,
+        margin: "0 auto",
+        fontFamily: "sans-serif",
+      }}
+    >
       <h2 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>
         Importar Candidatos
       </h2>
       <p style={{ color: "#666", marginBottom: "2rem" }}>
-        Sube un archivo <strong>.csv</strong> o <strong>.xlsx</strong> con los candidatos.
-        Las columnas requeridas son: <code>nombre</code>, <code>posicion</code>,{" "}
-        <code>fechaEntrevista</code>. La columna <code>estado</code> es opcional
-        (pendiente por defecto).
+        Sube un archivo <strong>.csv</strong> o <strong>.xlsx</strong> con los
+        candidatos. Las columnas requeridas son: <code>nombre</code>,{" "}
+        <code>posicion</code>, <code>fechaEntrevista</code>. La columna{" "}
+        <code>estado</code> es opcional (se crea automáticamente si no existe).
       </p>
 
-      {/* Zona de carga */}
-      {!candidatos.length && !resultado && (
+      {/* ── Banner de progreso (visible aunque el usuario navegue y vuelva) ── */}
+      {running && (
         <div
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          style={{
+            background: "#fff7f5",
+            border: "1px solid #fca89a",
+            borderRadius: 12,
+            padding: "1.5rem",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <p style={{ fontWeight: 600, marginBottom: "0.75rem", color: "#c2410c" }}>
+            ⏳ Importación en progreso — no cierres el Studio
+          </p>
+          <div
+            style={{
+              background: "#e5e7eb",
+              borderRadius: 999,
+              height: 10,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                background: "#e85d3c",
+                height: "100%",
+                width: `${progreso}%`,
+                transition: "width 0.3s",
+              }}
+            />
+          </div>
+          <p
+            style={{
+              textAlign: "center",
+              marginTop: "0.5rem",
+              color: "#666",
+              fontSize: "0.875rem",
+            }}
+          >
+            {progreso}% — {ok} importados
+            {errores > 0 && `, ${errores} errores`} de {total} candidatos
+          </p>
+        </div>
+      )}
+
+      {/* ── Resultado (persiste aunque el usuario navegue y vuelva) ─────────── */}
+      {resultado && (
+        <div
+          style={{
+            background: resultado.errores === 0 ? "#f0fdf4" : "#fffbeb",
+            border: `1px solid ${resultado.errores === 0 ? "#86efac" : "#fcd34d"}`,
+            borderRadius: 12,
+            padding: "1.5rem",
+            marginBottom: "1.5rem",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: "2.5rem" }}>
+            {resultado.errores === 0 ? "✅" : "⚠️"}
+          </div>
+          <p style={{ fontWeight: 700, fontSize: "1.2rem", margin: "0.5rem 0" }}>
+            {resultado.ok} candidatos importados correctamente
+          </p>
+          {resultado.errores > 0 && (
+            <p style={{ color: "#b45309" }}>
+              {resultado.errores} no se pudieron importar
+            </p>
+          )}
+          <button
+            onClick={handleLimpiar}
+            style={{
+              marginTop: "1rem",
+              padding: "0.5rem 1.5rem",
+              borderRadius: 8,
+              border: "1px solid #ccc",
+              background: "white",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            Importar otro archivo
+          </button>
+        </div>
+      )}
+
+      {/* ── Zona de carga ─────────────────────────────────────────────────── */}
+      {!candidatos.length && !resultado && !running && (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           onClick={() => fileRef.current?.click()}
@@ -254,46 +393,17 @@ export function ImportTool() {
         </div>
       )}
 
-      {/* Resultado de importación */}
-      {resultado && (
-        <div style={{
-          background: resultado.errores === 0 ? "#f0fdf4" : "#fffbeb",
-          border: `1px solid ${resultado.errores === 0 ? "#86efac" : "#fcd34d"}`,
-          borderRadius: 12,
-          padding: "1.5rem",
-          marginBottom: "1.5rem",
-          textAlign: "center",
-        }}>
-          <div style={{ fontSize: "2.5rem" }}>
-            {resultado.errores === 0 ? "✅" : "⚠️"}
-          </div>
-          <p style={{ fontWeight: 700, fontSize: "1.2rem", margin: "0.5rem 0" }}>
-            {resultado.ok} candidatos importados correctamente
-          </p>
-          {resultado.errores > 0 && (
-            <p style={{ color: "#b45309" }}>{resultado.errores} no se pudieron importar</p>
-          )}
-          <button
-            onClick={limpiar}
-            style={{
-              marginTop: "1rem",
-              padding: "0.5rem 1.5rem",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-              background: "white",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
-            Importar otro archivo
-          </button>
-        </div>
-      )}
-
-      {/* Preview de datos */}
+      {/* ── Preview de datos ──────────────────────────────────────────────── */}
       {candidatos.length > 0 && (
         <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "1rem",
+            }}
+          >
             <div>
               <strong>{candidatos.length}</strong> filas detectadas en{" "}
               <code>{nombreArchivo}</code>
@@ -304,20 +414,54 @@ export function ImportTool() {
               )}
             </div>
             <button
-              onClick={limpiar}
-              style={{ padding: "0.3rem 0.8rem", borderRadius: 6, border: "1px solid #ccc", background: "white", cursor: "pointer" }}
+              onClick={handleLimpiar}
+              style={{
+                padding: "0.3rem 0.8rem",
+                borderRadius: 6,
+                border: "1px solid #ccc",
+                background: "white",
+                cursor: "pointer",
+              }}
             >
               Cancelar
             </button>
           </div>
 
-          {/* Tabla preview */}
-          <div style={{ overflowX: "auto", marginBottom: "1.5rem", borderRadius: 8, border: "1px solid #e5e7eb" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+          <div
+            style={{
+              overflowX: "auto",
+              marginBottom: "1.5rem",
+              borderRadius: 8,
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: "0.875rem",
+              }}
+            >
               <thead>
                 <tr style={{ background: "#f9fafb" }}>
-                  {["#", "Nombre", "Posición", "Estado", "Fecha de entrevista", ""].map((h) => (
-                    <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontWeight: 600, borderBottom: "1px solid #e5e7eb" }}>
+                  {[
+                    "#",
+                    "Nombre",
+                    "Email",
+                    "Posición",
+                    "Estado",
+                    "Fecha de entrevista",
+                    "",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "0.75rem 1rem",
+                        textAlign: "left",
+                        fontWeight: 600,
+                        borderBottom: "1px solid #e5e7eb",
+                      }}
+                    >
                       {h}
                     </th>
                   ))}
@@ -325,24 +469,49 @@ export function ImportTool() {
               </thead>
               <tbody>
                 {candidatos.map((c, i) => (
-                  <tr key={i} style={{ background: c._error ? "#fef2f2" : "white", borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "0.6rem 1rem", color: "#9ca3af" }}>{i + 1}</td>
-                    <td style={{ padding: "0.6rem 1rem", fontWeight: 500 }}>{c.nombre || "—"}</td>
-                    <td style={{ padding: "0.6rem 1rem" }}>{c.posicion || "—"}</td>
+                  <tr
+                    key={i}
+                    style={{
+                      background: c._error ? "#fef2f2" : "white",
+                      borderBottom: "1px solid #f3f4f6",
+                    }}
+                  >
+                    <td style={{ padding: "0.6rem 1rem", color: "#9ca3af" }}>
+                      {i + 1}
+                    </td>
+                    <td style={{ padding: "0.6rem 1rem", fontWeight: 500 }}>
+                      {c.nombre || "—"}
+                    </td>
+                    <td style={{ padding: "0.6rem 1rem", color: "#6b7280" }}>
+                      {c.email || "—"}
+                    </td>
                     <td style={{ padding: "0.6rem 1rem" }}>
-                      <span style={{
-                        padding: "0.15rem 0.6rem",
-                        borderRadius: 999,
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        background: c.estado === "aprobado" ? "#dcfce7" : c.estado === "rechazado" ? "#fee2e2" : "#fef9c3",
-                        color: c.estado === "aprobado" ? "#166534" : c.estado === "rechazado" ? "#991b1b" : "#854d0e",
-                      }}>
-                        {c.estado}
+                      {c.posicion || "—"}
+                    </td>
+                    <td style={{ padding: "0.6rem 1rem" }}>
+                      <span
+                        style={{
+                          padding: "0.15rem 0.6rem",
+                          borderRadius: 999,
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          background: "#f3f4f6",
+                          color: "#374151",
+                        }}
+                      >
+                        {c.estadoNombre}
                       </span>
                     </td>
-                    <td style={{ padding: "0.6rem 1rem" }}>{c.fechaEntrevista || "—"}</td>
-                    <td style={{ padding: "0.6rem 1rem", color: "#dc2626", fontSize: "0.8rem" }}>
+                    <td style={{ padding: "0.6rem 1rem" }}>
+                      {c.fechaEntrevista || "—"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "0.6rem 1rem",
+                        color: "#dc2626",
+                        fontSize: "0.8rem",
+                      }}
+                    >
                       {c._error ?? ""}
                     </td>
                   </tr>
@@ -351,20 +520,39 @@ export function ImportTool() {
             </table>
           </div>
 
-          {/* Barra de progreso */}
-          {importando && (
+          {running && (
             <div style={{ marginBottom: "1rem" }}>
-              <div style={{ background: "#e5e7eb", borderRadius: 999, height: 8, overflow: "hidden" }}>
-                <div style={{ background: "#e85d3c", height: "100%", width: `${progreso}%`, transition: "width 0.2s" }} />
+              <div
+                style={{
+                  background: "#e5e7eb",
+                  borderRadius: 999,
+                  height: 8,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#e85d3c",
+                    height: "100%",
+                    width: `${progreso}%`,
+                    transition: "width 0.2s",
+                  }}
+                />
               </div>
-              <p style={{ textAlign: "center", marginTop: "0.5rem", color: "#666", fontSize: "0.875rem" }}>
+              <p
+                style={{
+                  textAlign: "center",
+                  marginTop: "0.5rem",
+                  color: "#666",
+                  fontSize: "0.875rem",
+                }}
+              >
                 Importando… {progreso}%
               </p>
             </div>
           )}
 
-          {/* Botón de importar */}
-          {validos.length > 0 && !importando && (
+          {validos.length > 0 && !running && (
             <button
               onClick={importar}
               style={{
@@ -379,24 +567,45 @@ export function ImportTool() {
                 width: "100%",
               }}
             >
-              Importar {validos.length} candidato{validos.length !== 1 ? "s" : ""}
-              {conErrores.length > 0 && ` (${conErrores.length} con errores serán omitidos)`}
+              Importar {validos.length} candidato
+              {validos.length !== 1 ? "s" : ""}
+              {conErrores.length > 0 &&
+                ` (${conErrores.length} con errores serán omitidos)`}
             </button>
           )}
         </>
       )}
 
-      {/* Guía de formato */}
+      {/* ── Guía de formato ───────────────────────────────────────────────── */}
       <details style={{ marginTop: "2rem", color: "#666" }}>
-        <summary style={{ cursor: "pointer", fontWeight: 600, marginBottom: "0.5rem" }}>
+        <summary
+          style={{ cursor: "pointer", fontWeight: 600, marginBottom: "0.5rem" }}
+        >
           ¿Cómo debe estar organizado el archivo?
         </summary>
-        <p style={{ marginTop: "0.75rem" }}>El archivo debe tener estas columnas (el orden no importa):</p>
-        <table style={{ borderCollapse: "collapse", marginTop: "0.5rem", fontSize: "0.875rem" }}>
+        <p style={{ marginTop: "0.75rem" }}>
+          El archivo debe tener estas columnas (el orden no importa):
+        </p>
+        <table
+          style={{
+            borderCollapse: "collapse",
+            marginTop: "0.5rem",
+            fontSize: "0.875rem",
+          }}
+        >
           <thead>
             <tr style={{ background: "#f3f4f6" }}>
               {["Columna", "Requerida", "Valores aceptados"].map((h) => (
-                <th key={h} style={{ padding: "0.5rem 1rem", textAlign: "left", border: "1px solid #e5e7eb" }}>{h}</th>
+                <th
+                  key={h}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    textAlign: "left",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
@@ -405,16 +614,49 @@ export function ImportTool() {
               ["nombre", "✅ Sí", "Texto libre"],
               ["posicion", "✅ Sí", "Texto libre"],
               ["fechaEntrevista", "✅ Sí", "DD/MM/YYYY o YYYY-MM-DD"],
-              ["estado", "No (defecto: pendiente)", "pendiente / aprobado / rechazado"],
+              [
+                "estado",
+                "No (defecto: Pendiente)",
+                "Cualquier texto — se crea automáticamente si no existe",
+              ],
+              ["email", "No", "Correo electrónico del candidato"],
             ].map(([col, req, val]) => (
               <tr key={col}>
-                <td style={{ padding: "0.5rem 1rem", border: "1px solid #e5e7eb", fontFamily: "monospace" }}>{col}</td>
-                <td style={{ padding: "0.5rem 1rem", border: "1px solid #e5e7eb" }}>{req}</td>
-                <td style={{ padding: "0.5rem 1rem", border: "1px solid #e5e7eb", color: "#555" }}>{val}</td>
+                <td
+                  style={{
+                    padding: "0.5rem 1rem",
+                    border: "1px solid #e5e7eb",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {col}
+                </td>
+                <td
+                  style={{
+                    padding: "0.5rem 1rem",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  {req}
+                </td>
+                <td
+                  style={{
+                    padding: "0.5rem 1rem",
+                    border: "1px solid #e5e7eb",
+                    color: "#555",
+                  }}
+                >
+                  {val}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+        <p style={{ marginTop: "1rem", fontSize: "0.85rem" }}>
+          <strong>Tip:</strong> Puedes definir tus propios estados desde{" "}
+          <em>Candidatos → Estados de candidatos</em> antes de importar, o
+          simplemente escríbelos en el Excel y se crearán solos.
+        </p>
       </details>
     </div>
   );

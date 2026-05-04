@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Rutas internas / privadas
+Disallow: /api/
+Disallow: /resultados
+Disallow: /404
+
+Sitemap: https://www.vipcaribbeanoffice.com/sitemap.xml

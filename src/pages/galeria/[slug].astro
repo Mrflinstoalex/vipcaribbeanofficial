@@ -21,17 +21,10 @@ try {
   error = 'No se pudo cargar el evento en este momento. Por favor, intenta más tarde.';
 }
 
+const pageTitle   = evento?.titulo    ? `${evento.titulo} | VIP Caribbean` : undefined;
+const pageOgImage = evento?.seoImage  || undefined;
 ---
 
-<Layout>
- 
-  <EventoDetalle 
-    evento={evento} 
-        slug={slug}
-
-    error={error} 
-    client:load 
-  />
-
-
+<Layout title={pageTitle} ogImage={pageOgImage}>
+  <EventoDetalle evento={evento} slug={slug} error={error} client:load />
 </Layout>

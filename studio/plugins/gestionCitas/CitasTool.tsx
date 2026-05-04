@@ -33,6 +33,7 @@ export function CitasTool() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [filter, setFilter] = useState<Filter>("activas");
+  const [limpiando, setLimpiando] = useState(false);
 
   const fetchCitas = async () => {
     setLoading(true);
@@ -97,6 +98,40 @@ export function CitasTool() {
     }
   };
 
+  const handleLimpiar = async () => {
+    const hoy = new Date().toISOString().split("T")[0];
+    const pasadas = citas.filter((c) => c.fecha < hoy);
+
+    if (pasadas.length === 0) {
+      setMessage({ text: "No hay citas de fechas anteriores para limpiar.", type: "success" });
+      return;
+    }
+
+    const fechas = [...new Set(pasadas.map((c) => c.fecha))].sort().join(", ");
+    const confirmed = window.confirm(
+      `¿Eliminar permanentemente ${pasadas.length} cita(s) de fechas anteriores?\n\nFechas: ${fechas}\n\nEsta acción no se puede deshacer.`
+    );
+    if (!confirmed) return;
+
+    setLimpiando(true);
+    setMessage(null);
+
+    try {
+      let tx = client.transaction();
+      for (const c of pasadas) {
+        tx = tx.delete(c._id);
+      }
+      await tx.commit();
+
+      setCitas((prev) => prev.filter((c) => c.fecha >= hoy));
+      setMessage({ text: `${pasadas.length} cita(s) de fechas anteriores eliminadas correctamente.`, type: "success" });
+    } catch (err: any) {
+      setMessage({ text: `Error al limpiar: ${err?.message ?? "Error desconocido"}`, type: "error" });
+    } finally {
+      setLimpiando(false);
+    }
+  };
+
   // Agrupar y filtrar
   const grouped: GroupedCitas = {};
   for (const c of citas) {
@@ -126,6 +161,19 @@ export function CitasTool() {
           }}
         >
           {loading ? "Cargando..." : "🔄 Actualizar"}
+        </button>
+        <button
+          onClick={handleLimpiar}
+          disabled={limpiando || loading}
+          style={{
+            ...btnBase,
+            background: limpiando ? "#f9fafb" : "#fff1f2",
+            color: "#991b1b",
+            border: "1px solid #fca5a5",
+            cursor: limpiando || loading ? "not-allowed" : "pointer",
+          }}
+        >
+          {limpiando ? "Limpiando..." : "🗑️ Limpiar citas pasadas"}
         </button>
       </div>
 

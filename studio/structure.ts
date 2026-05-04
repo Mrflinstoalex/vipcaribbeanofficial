@@ -1,6 +1,8 @@
-import { StructureBuilder } from "sanity/structure";
+import type { StructureBuilder } from "sanity/structure";
 import { ImportTool } from "./plugins/importCandidatos/ImportTool";
+import { ImportEmpleosTool } from "./plugins/importEmpleos/ImportEmpleosTool";
 import { CitasTool } from "./plugins/gestionCitas/CitasTool";
+import { EnviarEmailsTool } from "./plugins/enviarEmails/EnviarEmailsTool";
 
 /**
  * Panel lateral del Studio organizado por sección.
@@ -51,6 +53,14 @@ export const structure = (S: StructureBuilder) =>
                     .schemaType("footer")
                     .documentId("footer")
                 ),
+              S.listItem()
+                .title("🔍 SEO Global")
+                .id("seoGlobal")
+                .child(
+                  S.document()
+                    .schemaType("seoGlobal")
+                    .documentId("seoGlobal")
+                ),
             ])
         ),
 
@@ -65,6 +75,11 @@ export const structure = (S: StructureBuilder) =>
             .items([
               S.documentTypeListItem("empleo").title("💼 Ver todos los empleos"),
               S.documentTypeListItem("empleoCategoria").title("📂 Categorías de Empleos"),
+              S.listItem()
+                .title("📥 Importar desde Excel / CSV")
+                .child(
+                  S.component(ImportEmpleosTool).title("Importar Empleos")
+                ),
             ])
         ),
       S.documentTypeListItem("lineaCrucero").title("🚢 Líneas de Crucero"),
@@ -78,10 +93,17 @@ export const structure = (S: StructureBuilder) =>
             .title("Candidatos")
             .items([
               S.documentTypeListItem("candidato").title("📋 Ver todos los candidatos"),
+              S.documentTypeListItem("estadoCandidato").title("🏷️ Estados de candidatos"),
               S.listItem()
                 .title("📥 Importar desde Excel / CSV")
                 .child(
                   S.component(ImportTool).title("Importar Candidatos")
+                ),
+              S.documentTypeListItem("listaCorreos").title("📋 Listas de correo"),
+              S.listItem()
+                .title("📧 Enviar emails a candidatos")
+                .child(
+                  S.component(EnviarEmailsTool).title("Enviar Emails")
                 ),
             ])
         ),

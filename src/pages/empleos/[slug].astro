@@ -5,8 +5,6 @@ import Layout from "@/layouts/Layout.astro";
 import EmpleoDetalle from "@/components/pages/EmpleoDetalle";
 import { getEmpleoBySlug } from "@/lib/cms";
 
-
-
 const { slug } = Astro.params;
 if (!slug) {
   throw new Error("Missing slug parameter");
@@ -20,15 +18,14 @@ try {
 } catch (e) {
   console.error(`Error cargando empleo con slug "${slug}":`, e);
   error = 'No se pudo cargar la vacante en este momento. Por favor, intenta más tarde.';
-  // empleo queda como null
 }
+
+const pageTitle = empleo?.titulo ? `${empleo.titulo} | VIP Caribbean` : undefined;
+const pageDesc  = empleo?.descripcion
+  ? (empleo.descripcion as string).replace(/<[^>]*>/g, "").slice(0, 160).trim()
+  : undefined;
 ---
 
-<Layout>
-  <EmpleoDetalle 
-    empleo={empleo} 
-    error={error} 
-    slug={slug}
-    client:load 
-  />
+<Layout title={pageTitle} description={pageDesc}>
+  <EmpleoDetalle empleo={empleo} error={error} slug={slug} client:load />
 </Layout>

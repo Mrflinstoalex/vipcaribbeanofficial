@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Turnstile, type TurnstileHandle } from "@/components/Turnstile";
+
+const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 function generarHorasCada5Minutos() {
   const horas: string[] = [];
@@ -83,6 +86,10 @@ export default function ReservarCita() {
   // ✅ Horas bloqueadas por 24h (si alguien reservó hoy esa hora)
   const [lockedTimes, setLockedTimes] = useState<string[]>([]);
   const [loadingLockedTimes, setLoadingLockedTimes] = useState(true);
+
+  // ✅ Turnstile (captcha)
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   // ✅ Regla: solo permitir seleccionar 1 miércoles (el próximo miércoles)
   const allowedWednesday = useMemo(() => getNextWednesday(new Date()), []);
@@ -182,7 +189,8 @@ export default function ReservarCita() {
     formData.telefono.trim() !== "" &&
     !loadingBlockedDates &&
     !loadingLockedTimes &&
-    !lockedTimes.includes(selectedTime);
+    !lockedTimes.includes(selectedTime) &&
+    (!TURNSTILE_SITE_KEY || !!turnstileToken);
 
  const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -254,6 +262,7 @@ export default function ReservarCita() {
         fecha: fechaFormateada,
         dateISO: iso,
         time: selectedTime,
+        turnstileToken,
       }),
     });
 
@@ -279,6 +288,10 @@ export default function ReservarCita() {
         variant: "destructive",
       });
 
+      // El token Turnstile es de un solo uso — resetear para que el user pueda reintentar
+      setTurnstileToken("");
+      turnstileRef.current?.reset();
+
       return; // 🔥 IMPORTANT: no seguir
     }
 
@@ -294,6 +307,8 @@ export default function ReservarCita() {
       description: "No se pudo reservar la cita. Inténtalo más tarde.",
       variant: "destructive",
     });
+    setTurnstileToken("");
+    turnstileRef.current?.reset();
   } finally {
     setIsLoading(false);
   }
@@ -676,6 +691,19 @@ export default function ReservarCita() {
       </ul>
     </div>
   </div>
+
+  {/* Captcha Turnstile */}
+  {TURNSTILE_SITE_KEY ? (
+    <div className="flex justify-center mb-4">
+      <Turnstile
+        ref={turnstileRef}
+        siteKey={TURNSTILE_SITE_KEY}
+        onVerify={setTurnstileToken}
+        onExpire={() => setTurnstileToken("")}
+        onError={() => setTurnstileToken("")}
+      />
+    </div>
+  ) : null}
 
   {/* Submit Button */}
   <Button

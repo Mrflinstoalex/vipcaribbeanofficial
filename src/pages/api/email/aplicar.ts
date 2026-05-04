@@ -2,6 +2,7 @@
 import type { APIRoute } from "astro";
 import { transporter } from "./_mailer";
 import { getEmailTemplate } from "@/lib/cms";
+import { verifyTurnstile } from "./_turnstile";
 
 export const prerender = false;
 
@@ -23,8 +24,28 @@ function escHtml(s: string) {
     .replace(/'/g, "&#39;");
 }
 
-export const POST: APIRoute = async ({ request }) => {
+const MAX_CV_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_CV_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const ALLOWED_CV_EXTENSIONS = [".pdf", ".doc", ".docx"];
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+export const POST: APIRoute = async ({ request, clientAddress }) => {
   const formData = await request.formData();
+
+  // Verificación Turnstile (captcha) — bloquea bots antes de procesar nada
+  const turnstileToken = formData.get("cf-turnstile-response")?.toString() ?? "";
+  const turnstileOk = await verifyTurnstile(turnstileToken, clientAddress);
+  if (!turnstileOk) {
+    return new Response(
+      JSON.stringify({ message: "Verificación de seguridad fallida. Recarga la página e inténtalo de nuevo." }),
+      { status: 403, headers: JSON_HEADERS }
+    );
+  }
 
   const nombre = formData.get("nombre")?.toString().trim();
   const email = formData.get("email")?.toString().trim();
@@ -37,7 +58,41 @@ export const POST: APIRoute = async ({ request }) => {
   if (!nombre || !email || !telefono || !cv) {
     return new Response(JSON.stringify({ message: "Datos incompletos" }), {
       status: 400,
+      headers: JSON_HEADERS,
     });
+  }
+
+  // Validación de email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return new Response(JSON.stringify({ message: "Email inválido" }), {
+      status: 400,
+      headers: JSON_HEADERS,
+    });
+  }
+
+  // Validación del CV: tamaño
+  if (cv.size > MAX_CV_SIZE) {
+    return new Response(
+      JSON.stringify({ message: "El archivo debe ser menor a 5MB" }),
+      { status: 400, headers: JSON_HEADERS }
+    );
+  }
+  if (cv.size === 0) {
+    return new Response(JSON.stringify({ message: "Archivo CV vacío" }), {
+      status: 400,
+      headers: JSON_HEADERS,
+    });
+  }
+
+  // Validación del CV: tipo MIME y extensión (defensa en profundidad)
+  const cvName = (cv.name || "").toLowerCase();
+  const hasValidExt = ALLOWED_CV_EXTENSIONS.some((ext) => cvName.endsWith(ext));
+  if (!ALLOWED_CV_TYPES.includes(cv.type) || !hasValidExt) {
+    return new Response(
+      JSON.stringify({ message: "Formato no válido. Sube un PDF o Word (.doc, .docx)" }),
+      { status: 400, headers: JSON_HEADERS }
+    );
   }
 
   const buffer = Buffer.from(await cv.arrayBuffer());
@@ -132,5 +187,8 @@ export const POST: APIRoute = async ({ request }) => {
     html: finalHtml,
   });
 
-  return new Response(JSON.stringify({ success: true }));
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: JSON_HEADERS,
+  });
 };

@@ -1,10 +1,19 @@
 ---
+export const prerender = false;
+
 import Layout from "@/layouts/Layout.astro";
 import AplicarComp from "@/components/pages/Aplicar";
+import { getEmpleosDisponibles } from "@/lib/cms";
 
+let empleosDisponibles: { slug: string; titulo: string }[] = [];
+try {
+  const all = await getEmpleosDisponibles();
+  empleosDisponibles = all.map((e: any) => ({ slug: e.slug, titulo: e.titulo }));
+} catch {}
 
+const preselectedSlug = Astro.url.searchParams.get("puesto") ?? undefined;
 ---
 
-<Layout>
-  <AplicarComp client:load />
+<Layout title="Aplicar | VIP Caribbean">
+  <AplicarComp empleos={empleosDisponibles} preselectedSlug={preselectedSlug} client:load />
 </Layout>

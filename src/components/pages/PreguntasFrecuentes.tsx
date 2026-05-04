@@ -5,19 +5,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import type { FaqCategoria } from "@/lib/cms";
 
-export type FaqItem = {
-  id: number;
-  pregunta: string;
-  respuestaHtml: string;
-  order: number;
-};
-
-export type FaqCategoria = {
-  key: string;
-  categoria: string;
-  preguntas: FaqItem[];
-};
+export type { FaqCategoria };
 
 type PreguntasFrecuentesProps = {
   categorias: FaqCategoria[];

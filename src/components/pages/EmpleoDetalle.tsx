@@ -1,6 +1,6 @@
-import { 
-  Utensils, ChefHat, ShoppingBag, Music, Wine, Sparkles, Camera, 
-  MapPin, Clock, ArrowLeft, Ship, Calendar, AlertCircle
+import {
+  Utensils, ChefHat, ShoppingBag, Music, Wine, Sparkles, Camera,
+  MapPin, Clock, ArrowLeft, Ship, Calendar, AlertCircle, DollarSign
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ export interface Empleo {
   categoria?: string;
   lugar?: string;
   duracion_del_contrato?: string | null;
+  salario?: string | null;
+  bloqueado?: boolean;
 }
 
 interface EmpleoDetalleProps {
@@ -116,6 +118,9 @@ const EmpleoDetalle: React.FC<EmpleoDetalleProps> = ({ empleo, error,slug }) => 
   const cruiseLineNombre = empleo.cruiseLine?.nombre || "Línea de cruceros no especificada";
   const categoria = (empleo.categoria as CategoriaType) || "bares";
   const duracionContrato = empleo.duracion_del_contrato || "No especificada";
+  const salario = empleo.salario ?? null;
+  const bloqueado = empleo.bloqueado ?? false;
+  const applyHref = `/aplicar?puesto=${encodeURIComponent(empleo.slug ?? "")}`;
 
   const IconComponent = categoriaIcons[categoria] || Sparkles;
 
@@ -202,15 +207,38 @@ const EmpleoDetalle: React.FC<EmpleoDetalleProps> = ({ empleo, error,slug }) => 
                     </div>
                   </div>
 
+                  {salario && (
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="w-6 h-6 text-primary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Salario</p>
+                        <p className="font-semibold text-foreground">{salario}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-4 border-t border-border">
-                    <a href="/aplicar" target="_blank" rel="noopener noreferrer">
-                      <Button className="w-full bg-gradient-coral hover:opacity-90 text-white border-0">
-                        Aplicar Ahora
-                      </Button>
-                    </a>
-                    <p className="text-xs text-muted-foreground text-center mt-3">
-                      Te contactaremos rápidamente para coordinar tu proceso
-                    </p>
+                    {bloqueado ? (
+                      <div className="text-center space-y-2">
+                        <div className="w-full py-3 px-4 rounded-md bg-muted text-muted-foreground text-sm font-medium">
+                          Posición temporalmente no disponible
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          No tenemos vacantes abiertas para este puesto en este momento.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <a href={applyHref} target="_blank" rel="noopener noreferrer">
+                          <Button className="w-full bg-gradient-coral hover:opacity-90 text-white border-0">
+                            Aplicar Ahora
+                          </Button>
+                        </a>
+                        <p className="text-xs text-muted-foreground text-center mt-3">
+                          Te contactaremos rápidamente para coordinar tu proceso
+                        </p>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

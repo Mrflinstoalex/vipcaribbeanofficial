@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
   } catch {
     return new Response(JSON.stringify({ message: "Payload JSON inválido." }), {
       status: 400,
-      headers: { "Content-Type": "application/json", ...headers },
+      headers,
     });
   }
 
@@ -58,7 +58,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!name || !email || !appointment_date || !appointment_time) {
     return new Response(JSON.stringify({ message: "Datos incompletos." }), {
       status: 400,
-      headers: { "Content-Type": "application/json", ...headers },
+      headers,
     });
   }
 
@@ -70,8 +70,7 @@ export const POST: APIRoute = async ({ request }) => {
   const vars = { appointment_date, appointment_time };
 
   // Email al admin + template desde Sanity en paralelo
-  let template: { asunto: string; cuerpoHtml: string } | null = null;
-  const [,] = await Promise.all([
+  const [, template] = await Promise.all([
     transporter.sendMail({
       from: `"Citas Web" <${import.meta.env.EMAIL_USER}>`,
       to: import.meta.env.EMAIL_USER,
@@ -84,13 +83,10 @@ export const POST: APIRoute = async ({ request }) => {
         <p><b>Hora:</b> ${escHtml(appointment_time)}</p>
       `,
     }),
-    (async () => {
-      try {
-        template = await getEmailTemplate("cancelacion");
-      } catch (e) {
-        console.error("Error cargando template cancelación desde Sanity:", e);
-      }
-    })(),
+    getEmailTemplate("cancelacion").catch((e) => {
+      console.error("Error cargando template cancelación desde Sanity:", e);
+      return null;
+    }),
   ]);
 
   // Email al cliente con template de Sanity o fallback
@@ -119,6 +115,6 @@ export const POST: APIRoute = async ({ request }) => {
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
-    headers: { "Content-Type": "application/json", ...headers },
+    headers,
   });
 };

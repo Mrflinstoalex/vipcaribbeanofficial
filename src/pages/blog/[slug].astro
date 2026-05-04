@@ -67,11 +67,13 @@ try {
   hasError = true;
 }
 
+const pageTitle   = article?.title   ? `${article.title} | VIP Caribbean` : undefined;
+const pageDesc    = article?.excerpt || undefined;
+const pageOgImage = article?.image   || undefined;
 ---
 
-
-<Layout>
- <BlogDetalle
+<Layout title={pageTitle} description={pageDesc} ogImage={pageOgImage}>
+  <BlogDetalle
     article={article}
     popularArticles={popularArticles}
     relatedArticles={relatedArticles}

@@ -116,8 +116,10 @@ test.describe("Página de Empleos", () => {
     const textoTitulo = await titulo.textContent();
     expect(textoTitulo?.trim().length).toBeGreaterThan(0);
 
-    await expect(page.getByText(/descripción del puesto/i)).toBeVisible();
-    await expect(page.getByText(/duración del contrato/i)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: /descripción del puesto/i })
+    ).toBeVisible();
+    await expect(page.getByText(/duración del contrato/i).first()).toBeVisible();
   });
 
   test("volver a empleos desde el detalle funciona", async ({ page }) => {

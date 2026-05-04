@@ -4,20 +4,41 @@ import "../styles/global.css";
 import HeaderWrapper from "@/components/HeaderWrapper.astro";
 import Analytics from "@vercel/analytics/astro";
 import SpeedInsights from "@vercel/speed-insights/astro";
-import { getPageInfo } from "@/lib/cms";
+import { getPageInfo, getSeoGlobal } from "@/lib/cms";
 import { ClientRouter } from "astro:transitions";
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  noindex?: boolean;
+}
+
+const { title: pageTitle, description: pageDescription, ogImage: pageOgImage, noindex = false } = Astro.props;
 
 let footerPage: any = { acf: null };
 try { footerPage = await getPageInfo("footer"); } catch {}
 const footerAcf = footerPage?.acf ?? {};
+
+let seoData: any = null;
+try { seoData = await getSeoGlobal(); } catch {}
 
 // Dominio base (SIN slash final)
 const SITE_URL =
   import.meta.env.SITE_URL?.replace(/\/$/, "") ||
   "https://www.vipcaribbeanoffice.com";
 
-// Open Graph Image (debe existir en /public)
-const OG_IMAGE = `${SITE_URL}/og-vipcaribbean.png`;
+// Valores SEO: props de la página > Sanity global > fallback hardcoded
+const FALLBACK_TITLE = "Trabajo en Cruceros | Agencia de Empleo en RD – VIP Caribbean";
+const FALLBACK_DESCRIPTION = "Consigue trabajo en cruceros con VIP Caribbean, la agencia líder en República Dominicana. Vacantes en Disney Cruise Line, Virgin Voyages, Costa y más. Aplica hoy.";
+const FALLBACK_OG_IMAGE = `${SITE_URL}/og-vipcaribbean.png`;
+const FALLBACK_KEYWORDS = "trabajo en cruceros, empleo en cruceros, agencia de empleo en cruceros, trabajar en barcos, cruceros desde RD, trabajo internacional";
+
+const seoTitle       = pageTitle       || seoData?.defaultTitle       || FALLBACK_TITLE;
+const seoDescription = pageDescription || seoData?.defaultDescription || FALLBACK_DESCRIPTION;
+const seoOgImage     = pageOgImage     || seoData?.defaultOgImage     || FALLBACK_OG_IMAGE;
+const seoKeywords    = seoData?.keywords || FALLBACK_KEYWORDS;
+const siteName       = seoData?.siteName || "VIP Caribbean";
 ---
 
 <!doctype html>
@@ -30,40 +51,25 @@ const OG_IMAGE = `${SITE_URL}/og-vipcaribbean.png`;
     <link rel="canonical" href={SITE_URL} />
 
     <!-- SEO -->
-    <title>Trabajo en Cruceros | Agencia de Empleo en RD – VIP Caribbean</title>
-    <meta
-      name="description"
-      content="Consigue trabajo en cruceros con VIP Caribbean, la agencia líder en República Dominicana. Vacantes en Disney Cruise Line, Virgin Voyages, Costa y más. Aplica hoy."
-    />
-    <meta name="author" content="VIP Caribbean" />
-    <meta
-      name="keywords"
-      content="trabajo en cruceros, empleo en cruceros, agencia de empleo en cruceros, trabajar en barcos, cruceros desde RD, trabajo internacional"
-    />
-    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <title>{seoTitle}</title>
+    <meta name="description" content={seoDescription} />
+    <meta name="author" content={siteName} />
+    <meta name="keywords" content={seoKeywords} />
+    <meta name="robots" content={noindex ? "noindex,nofollow" : "index,follow,max-image-preview:large"} />
 
     <!-- Open Graph -->
-    <meta
-      property="og:title"
-      content="Trabajo en Cruceros desde RD | VIP Caribbean"
-    />
-    <meta
-      property="og:description"
-      content="La agencia líder en República Dominicana para conseguir trabajo en cruceros internacionales."
-    />
+    <meta property="og:title" content={seoTitle} />
+    <meta property="og:description" content={seoDescription} />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content={OG_IMAGE} />
+    <meta property="og:image" content={seoOgImage} />
     <meta property="og:url" content={SITE_URL} />
     <meta property="og:locale" content="es_DO" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Trabajo en Cruceros | VIP Caribbean" />
-    <meta
-      name="twitter:description"
-      content="Conecta con las mejores líneas de cruceros y trabaja en el extranjero desde RD."
-    />
-    <meta name="twitter:image" content={OG_IMAGE} />
+    <meta name="twitter:title" content={seoTitle} />
+    <meta name="twitter:description" content={seoDescription} />
+    <meta name="twitter:image" content={seoOgImage} />
 
     <!-- Favicons -->
     <link rel="icon" href="/favicons/favicon.ico" sizes="any" />

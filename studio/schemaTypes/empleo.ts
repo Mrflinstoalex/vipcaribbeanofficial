@@ -64,11 +64,24 @@ export const empleo = defineType({
       description: "Ej: 6 meses, 4-6 meses",
     }),
     defineField({
+      name: "salario",
+      title: "Salario",
+      type: "string",
+      description: "Ej: $1,500 USD/mes, Negociable, $800 - $1,200 USD",
+    }),
+    defineField({
       name: "urgente",
       title: "¿Posición urgente?",
       type: "boolean",
       initialValue: false,
       description: "Aparecerá destacada en la sección de empleos urgentes.",
+    }),
+    defineField({
+      name: "bloqueado",
+      title: "¿Posición bloqueada?",
+      type: "boolean",
+      initialValue: false,
+      description: "La vacante seguirá visible pero los candidatos no podrán aplicar a ella. Tampoco aparecerá en el formulario de aplicación.",
     }),
   ],
   preview: {
@@ -78,10 +91,12 @@ export const empleo = defineType({
       categoria: "categoria.nombre",
       media: "logoEmpleo",
       urgente: "urgente",
+      bloqueado: "bloqueado",
     },
-    prepare({ title, subtitle, categoria, media, urgente }) {
+    prepare({ title, subtitle, categoria, media, urgente, bloqueado }) {
+      const prefix = bloqueado ? "🚫" : urgente ? "🔴" : "";
       return {
-        title: urgente ? `🔴 ${title}` : title,
+        title: prefix ? `${prefix} ${title}` : title,
         subtitle: [subtitle, categoria].filter(Boolean).join(" · ") || "Sin línea asignada",
         media,
       };

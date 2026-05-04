@@ -23,15 +23,28 @@ const escribir = async (page: any, selector: string, valor: string) => {
 
 test.describe("Página de Reservar Cita (/reservar-cita)", () => {
   test.beforeEach(async ({ page }) => {
-    // Interceptar endpoints de WordPress para no depender de datos externos
-    await page.route(/wp-json\/vipc\/v1\/blocked-dates/, (route) =>
+    // Stub de Cloudflare Turnstile: el componente revisa window.turnstile antes
+    // de cargar el script externo, así que con esto no se llama a Cloudflare.
+    await page.addInitScript(() => {
+      (window as any).turnstile = {
+        render: (_el: HTMLElement, opts: any) => {
+          setTimeout(() => opts?.callback?.("test-turnstile-token"), 0);
+          return "test-widget-id";
+        },
+        reset: () => {},
+        remove: () => {},
+      };
+    });
+
+    // Interceptar endpoints de disponibilidad para no depender de Sanity
+    await page.route(/\/api\/blocked-dates/, (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({ blocked_dates: [] }),
       })
     );
-    await page.route(/wp-json\/vipc\/v1\/locked-times/, (route) =>
+    await page.route(/\/api\/locked-times/, (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",

@@ -29,6 +29,7 @@ export interface Empleo {
   logoEmpleo?: string | null;
   cruiseLine?: CruiseLine | null;
   categoria?: string | null;
+  bloqueado?: boolean;
 }
 
 export interface EmpleosPageProps {
@@ -103,6 +104,7 @@ const EmpleosPage: React.FC<EmpleosPageProps> = ({ empleos = [], error }) => {
     crucero: e.cruiseLine?.nombre || "Varias líneas de cruceros",
     ubicacion: "Internacional",
     tipo: "Tiempo completo",
+    bloqueado: e.bloqueado ?? false,
   }));
 
   const vacantesFiltradas =
@@ -184,22 +186,29 @@ const EmpleosPage: React.FC<EmpleosPageProps> = ({ empleos = [], error }) => {
                 return (
                   <Card
                     key={vacante.id}
-                    className="hover:shadow-lg transition-all hover:-translate-y-1 group"
+                    className={`transition-all group ${vacante.bloqueado ? "opacity-70" : "hover:shadow-lg hover:-translate-y-1"}`}
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="w-12 h-12 bg-gradient-coral rounded-xl flex items-center justify-center shrink-0">
-                          <IconComponent className="w-6 h-6 text-white" />
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${vacante.bloqueado ? "bg-muted" : "bg-gradient-coral"}`}>
+                          <IconComponent className={`w-6 h-6 ${vacante.bloqueado ? "text-muted-foreground" : "text-white"}`} />
                         </div>
-                        <div>
-                          <h3
-                            style={{
-                              ["view-transition-name" as any]: `title-${vacante.slug}`,
-                            }}
-                            className="font-semibold text-foreground group-hover:text-primary transition-colors"
-                          >
-                            {vacante.titulo}
-                          </h3>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3
+                              style={{
+                                ["view-transition-name" as any]: `title-${vacante.slug}`,
+                              }}
+                              className="font-semibold text-foreground group-hover:text-primary transition-colors"
+                            >
+                              {vacante.titulo}
+                            </h3>
+                            {vacante.bloqueado && (
+                              <span className="text-xs font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full shrink-0">
+                                Sin vacantes
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-primary font-medium">
                             {vacante.crucero}
                           </p>

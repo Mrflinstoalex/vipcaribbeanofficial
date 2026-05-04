@@ -2,6 +2,7 @@
 import type { APIRoute } from "astro";
 import { transporter } from "./_mailer";
 import { writeClient, getLockedTimesForDate, getEmailTemplate } from "@/lib/cms";
+import { verifyTurnstile } from "./_turnstile";
 
 export const prerender = false;
 
@@ -9,8 +10,17 @@ function applyVars(template: string, vars: Record<string, string>) {
   return template.replace(/{{\s*(\w+)\s*}}/g, (_, key) => vars[key] ?? "");
 }
 
-export const POST: APIRoute = async ({ request }) => {
-  const { nombre, email, telefono, fecha, dateISO, time } = await request.json();
+export const POST: APIRoute = async ({ request, clientAddress }) => {
+  const { nombre, email, telefono, fecha, dateISO, time, turnstileToken } = await request.json();
+
+  // Verificación Turnstile (captcha) antes de cualquier otro chequeo
+  const turnstileOk = await verifyTurnstile(String(turnstileToken ?? ""), clientAddress);
+  if (!turnstileOk) {
+    return new Response(
+      JSON.stringify({ message: "Verificación de seguridad fallida. Recarga la página e inténtalo de nuevo." }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
   if (!nombre || !email || !telefono || !fecha || !dateISO || !time) {
     return new Response(JSON.stringify({ message: "Datos incompletos" }), {

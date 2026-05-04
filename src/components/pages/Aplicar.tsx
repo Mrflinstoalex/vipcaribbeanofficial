@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Upload,
   FileText,
@@ -23,16 +30,37 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import { Turnstile, type TurnstileHandle } from "@/components/Turnstile";
 
-const Aplicar = () => {
+const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+interface EmpleoOption {
+  slug: string;
+  titulo: string;
+}
+
+interface AplicarProps {
+  empleos?: EmpleoOption[];
+  preselectedSlug?: string;
+}
+
+const Aplicar = ({ empleos = [], preselectedSlug }: AplicarProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
+
+  const initialPosicion = (() => {
+    if (!preselectedSlug) return "";
+    return empleos.find((e) => e.slug === preselectedSlug)?.titulo ?? "";
+  })();
+
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
     telefono: "",
-    posicion: "",
+    posicion: initialPosicion,
     mensaje: "",
   });
 
@@ -40,7 +68,6 @@ const Aplicar = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tipo de archivo
     const validTypes = [
       "application/pdf",
       "application/msword",
@@ -55,7 +82,6 @@ const Aplicar = () => {
       return;
     }
 
-    // Validar tamaño (máx 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Archivo muy grande",
@@ -78,7 +104,6 @@ const Aplicar = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validaciones finales
     if (!cvFile) {
       toast({
         title: "CV Requerido",
@@ -97,21 +122,39 @@ const Aplicar = () => {
       return;
     }
 
+    if (!formData.posicion) {
+      toast({
+        title: "Posición requerida",
+        description: "Por favor selecciona la posición a la que aplicas",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!turnstileToken) {
+      toast({
+        title: "Verificación pendiente",
+        description: "Por favor completa la verificación de seguridad antes de enviar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Crear FormData para enviar archivo + datos
     const data = new FormData();
     data.append("nombre", formData.nombre.trim());
     data.append("email", formData.email.trim());
     data.append("telefono", formData.telefono.trim());
-    data.append("posicion", formData.posicion.trim());
+    data.append("posicion", formData.posicion);
     data.append("mensaje", formData.mensaje.trim());
     data.append("cv", cvFile);
+    data.append("cf-turnstile-response", turnstileToken);
 
     try {
       const res = await fetch("/api/email/aplicar", {
         method: "POST",
-        body: data, // ¡Importante! No poner headers Content-Type, FormData lo maneja solo
+        body: data,
       });
 
       const result = await res.json();
@@ -120,19 +163,17 @@ const Aplicar = () => {
         throw new Error(result.message || "Error al enviar la aplicación");
       }
 
-      // Éxito
       toast({
         title: "¡Aplicación Enviada Exitosamente!",
         description: "Hemos recibido tu CV. Te enviamos un email de confirmación.",
       });
 
-      // Resetear formulario
       setFormData({ nombre: "", email: "", telefono: "", posicion: "", mensaje: "" });
       setCvFile(null);
-      // Resetear el input file (necesario para permitir subir el mismo archivo de nuevo)
       const fileInput = document.getElementById("cv") as HTMLInputElement;
       if (fileInput) fileInput.value = "";
-
+      setTurnstileToken("");
+      turnstileRef.current?.reset();
     } catch (error: any) {
       toast({
         title: "Error al enviar",
@@ -140,6 +181,8 @@ const Aplicar = () => {
           error.message || "Hubo un problema al enviar tu aplicación. Inténtalo más tarde.",
         variant: "destructive",
       });
+      setTurnstileToken("");
+      turnstileRef.current?.reset();
     } finally {
       setIsSubmitting(false);
     }
@@ -226,21 +269,41 @@ const Aplicar = () => {
                   />
                 </div>
 
-                {/* Posición */}
+                {/* Posición — dropdown */}
                 <div className="space-y-2">
-                  <Label htmlFor="posicion" className="flex items-center gap-2">
+                  <Label className="flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-primary" />
                     Posición a la que aplica *
                   </Label>
-                  <Input
-                    id="posicion"
-                    name="posicion"
-                    placeholder="Ej: Bartender, Housekeeping, Chef..."
-                    value={formData.posicion}
-                    onChange={handleInputChange}
-                    required
-                    className="h-12"
-                  />
+                  {empleos.length > 0 ? (
+                    <Select
+                      value={formData.posicion}
+                      onValueChange={(v) =>
+                        setFormData((prev) => ({ ...prev, posicion: v }))
+                      }
+                    >
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Selecciona una posición..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {empleos.map((e) => (
+                          <SelectItem key={e.slug} value={e.titulo}>
+                            {e.titulo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id="posicion"
+                      name="posicion"
+                      placeholder="Ej: Bartender, Housekeeping, Chef..."
+                      value={formData.posicion}
+                      onChange={handleInputChange}
+                      required
+                      className="h-12"
+                    />
+                  )}
                 </div>
 
                 {/* CV Upload */}
@@ -302,6 +365,19 @@ const Aplicar = () => {
                     className="resize-none"
                   />
                 </div>
+
+                {/* Captcha Turnstile */}
+                {TURNSTILE_SITE_KEY ? (
+                  <div className="flex justify-center">
+                    <Turnstile
+                      ref={turnstileRef}
+                      siteKey={TURNSTILE_SITE_KEY}
+                      onVerify={setTurnstileToken}
+                      onExpire={() => setTurnstileToken("")}
+                      onError={() => setTurnstileToken("")}
+                    />
+                  </div>
+                ) : null}
 
                 {/* Botón Enviar */}
                 <Button

@@ -38,6 +38,24 @@ const CV_PDF = {
   buffer: Buffer.from("%PDF-1.4 1 0 obj<</Type/Catalog>>endobj"),
 };
 
+/**
+ * Llena el campo "Posición a la que aplica". Detecta si es un Select de
+ * Radix (cuando hay empleos en CMS) o un Input nativo (sin empleos).
+ */
+const llenarPosicion = async (page: any, valor = "Bartender") => {
+  const selectTrigger = page.getByRole("combobox").first();
+  const inputPosicion = page.locator("#posicion");
+
+  if (await selectTrigger.isVisible().catch(() => false)) {
+    await selectTrigger.click();
+    // Selecciona la primera opción disponible en el dropdown
+    await page.getByRole("option").first().click();
+  } else if (await inputPosicion.isVisible().catch(() => false)) {
+    await inputPosicion.click();
+    await page.keyboard.type(valor, { delay: 40 });
+  }
+};
+
 const CV_INVALIDO = {
   name: "foto.jpg",
   mimeType: "image/jpeg",
@@ -46,6 +64,19 @@ const CV_INVALIDO = {
 
 test.describe("Página de Aplicar (/aplicar)", () => {
   test.beforeEach(async ({ page }) => {
+    // Stub de Cloudflare Turnstile: evita que se cargue el script real
+    // y devuelve un token falso para que el form pase la validación de captcha.
+    await page.addInitScript(() => {
+      (window as any).turnstile = {
+        render: (_el: HTMLElement, opts: any) => {
+          setTimeout(() => opts?.callback?.("test-turnstile-token"), 0);
+          return "test-widget-id";
+        },
+        reset: () => {},
+        remove: () => {},
+      };
+    });
+
     await page.goto("/aplicar");
     // Esperar a que React haya hidratado: #cv debe tener __reactProps$
     await page.waitForFunction(() => {
@@ -146,6 +177,8 @@ test.describe("Página de Aplicar (/aplicar)", () => {
     await page.keyboard.type("8091234567", { delay: 40 });
     await expect(page.locator("#telefono")).toHaveValue("8091234567");
 
+    await llenarPosicion(page);
+
     await page.locator("#mensaje").click();
     await page.keyboard.type("Tengo experiencia en restaurantes.", { delay: 40 });
 
@@ -180,6 +213,8 @@ test.describe("Página de Aplicar (/aplicar)", () => {
     await page.keyboard.type("8091234567", { delay: 40 });
     await expect(page.locator("#telefono")).toHaveValue("8091234567");
 
+    await llenarPosicion(page);
+
     await page.getByRole("button", { name: /enviar aplicación/i }).click();
 
     await expect(page.getByText(/error al enviar/i).first()).toBeVisible({ timeout: 10000 });
@@ -208,6 +243,8 @@ test.describe("Página de Aplicar (/aplicar)", () => {
     await page.locator("#telefono").click();
     await page.keyboard.type("8091234567", { delay: 40 });
     await expect(page.locator("#telefono")).toHaveValue("8091234567");
+
+    await llenarPosicion(page);
 
     await page.getByRole("button", { name: /enviar aplicación/i }).click();
     await expect(page.getByText(/aplicación enviada exitosamente/i).first()).toBeVisible({
