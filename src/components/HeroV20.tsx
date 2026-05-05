@@ -56,7 +56,7 @@ const HeroV11 = ({ data }: { data: HeroProps }) => {
           <div className="flex items-center gap-2 mb-3">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
             <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
-              Próxima Contratación
+              Convocatoria Abierta con:
             </p>
           </div>
           <p className="text-lg font-bold text-navy leading-tight mb-2">{data.proximaLinea}</p>
@@ -114,7 +114,7 @@ const HeroV11 = ({ data }: { data: HeroProps }) => {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </a>
-          <a href="/empleos">
+          <a href="/#oportunidades">
             <Button
               size="xl"
               className="bg-transparent border-2 border-white/20 text-white
@@ -149,7 +149,7 @@ const HeroV11 = ({ data }: { data: HeroProps }) => {
           </div>
           <div>
             <p className="text-[10px] text-white/45 font-semibold uppercase tracking-widest mb-0.5">
-              Próxima Contratación
+              Convocatoria Abierta con:
             </p>
             <p className="font-bold text-white">{data.proximaLinea}</p>
             <p className="text-sm text-white/55 mt-0.5">{data.proximaFecha}</p>
