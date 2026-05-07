@@ -211,7 +211,7 @@ const EmpleoDetalle: React.FC<EmpleoDetalleProps> = ({ empleo, error,slug }) => 
                     <div className="flex items-center gap-3">
                       <DollarSign className="w-6 h-6 text-primary" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Salario</p>
+                        <p className="text-sm text-muted-foreground">Salario aproximado</p>
                         <p className="font-semibold text-foreground">{salario}</p>
                       </div>
                     </div>
