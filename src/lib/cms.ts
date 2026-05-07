@@ -315,6 +315,29 @@ export const getEventoBySlug = async (slug: string) => {
   };
 };
 
+export const getLatestEventos = async (limit = 2) => {
+  const results = await client.fetch(
+    `*[_type == "evento"] | order(fecha desc) [0...${limit}] {
+      _id,
+      "slug": slug.current,
+      titulo,
+      descripcionCorta,
+      fecha,
+      lugar,
+      "portada": galeria[0].asset->url
+    }`
+  );
+  return results.map((e: any) => ({
+    id: e._id,
+    slug: e.slug,
+    titulo: e.titulo ?? "",
+    descripcion: e.descripcionCorta ?? "",
+    fecha: e.fecha ?? null,
+    lugar: e.lugar ?? null,
+    portada: e.portada ?? null,
+  }));
+};
+
 export const getAllEventosSlugs = async () => {
   const results = await client.fetch(
     `*[_type == "evento"] { "slug": slug.current }`
@@ -370,6 +393,31 @@ export const getBlogArticleBySlug = async (slug: string) => {
   );
   if (!data) return null;
   return mapArticulo(data);
+};
+
+export const getLatestBlogArticles = async (limit = 2) => {
+  const results = await client.fetch(
+    `*[_type == "articulo"] | order(fecha desc) [0...${limit}] {
+      _id,
+      "slug": slug.current,
+      titulo,
+      "imagen": imagen.asset->url,
+      descripcionCorta,
+      "categoria": categoria->nombre,
+      tiempoLectura,
+      fecha
+    }`
+  );
+  return results.map((a: any) => ({
+    id: a._id,
+    slug: a.slug,
+    title: a.titulo ?? "",
+    image: a.imagen ?? null,
+    excerpt: a.descripcionCorta ?? "",
+    categoryLabel: a.categoria ?? "Blog",
+    readTime: a.tiempoLectura ?? "",
+    date: a.fecha ?? "",
+  }));
 };
 
 export const getAllBlogArticlesSlugs = async (): Promise<string[]> => {

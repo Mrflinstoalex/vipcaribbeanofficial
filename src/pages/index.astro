@@ -8,6 +8,7 @@ import Process from "@/components/Process";
 import CTA from "@/components/CTA";
 import AppointmentSection from "@/components/AppointmentSection";
 import UrgentJobs from "@/components/UrgentJobs";
+import LoUltimo from "@/components/LoUltimo";
 
 import {
   Briefcase,
@@ -18,7 +19,7 @@ import {
   Shield,
 } from "lucide-react";
 
-import { getLandingPageData, getUrgentEmpleos } from "@/lib/cms";
+import { getLandingPageData, getUrgentEmpleos, getLatestEventos, getLatestBlogArticles } from "@/lib/cms";
 
 export const prerender = false;
 
@@ -26,6 +27,8 @@ export const prerender = false;
 
 let landingpageinfo: any = null;
 let empleosUrgentes: any[] = [];
+let ultimosEventos: any[] = [];
+let ultimosArticulos: any[] = [];
 
 try {
   landingpageinfo = await getLandingPageData();
@@ -37,6 +40,18 @@ try {
   empleosUrgentes = await getUrgentEmpleos();
 } catch (error) {
   console.error("Error getUrgentEmpleos:", error);
+}
+
+try {
+  ultimosEventos = await getLatestEventos(2);
+} catch (error) {
+  console.error("Error getLatestEventos:", error);
+}
+
+try {
+  ultimosArticulos = await getLatestBlogArticles(2);
+} catch (error) {
+  console.error("Error getLatestBlogArticles:", error);
 }
 
 
@@ -99,6 +114,7 @@ const ProcessData = {
 <Layout>
   {HeroData.titulo && <Hero data={HeroData} />}
   {empleosUrgentes.length > 0 && <UrgentJobs data={empleosUrgentes} />}
+  <LoUltimo eventos={ultimosEventos} articulos={ultimosArticulos} />
   <AppointmentSection />
   {ServicesData.servicios.length > 0 && <Services data={ServicesData} />}
   {AliadosData.aliados.length > 0 && <Partners data={AliadosData} />}

@@ -2,36 +2,6 @@ import { Flame, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-const urgentJobs = [
-  {
-    id: 1,
-    title: "Chef de Partida",
-    cruiseLine: "Disney Cruise Line",
-    location: "Internacional",
-    type: "Tiempo Completo",
-  },
-  {
-    id: 2,
-    title: "Bartender",
-    cruiseLine: "Virgin Voyages",
-    location: "Internacional",
-    type: "Tiempo Completo",
-  },
-  {
-    id: 3,
-    title: "Room Steward",
-    cruiseLine: "Costa Crociere",
-    location: "Internacional",
-    type: "Tiempo Completo",
-  },
-  {
-    id: 4,
-    title: "Mesero/a",
-    cruiseLine: "Oceania Cruises",
-    location: "Internacional",
-    type: "Tiempo Completo",
-  },
-];
 
 interface CruiseLine {
   nombre: string;
@@ -65,13 +35,13 @@ const UrgentJobs: React.FC<UrgentJobsProps> = ({ data }) => {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-destructive/10 text-destructive mb-4">
             <Flame className="w-5 h-5 animate-pulse" />
-            <span className="text-sm font-semibold">Vacantes Urgentes</span>
+            <span className="text-sm font-semibold">Vacantes En Demanda</span>
           </div>
           <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
-           Oportunidades Destacadas de esta <span className="text-gradient-coral">Semana</span>
+           Oportunidades Destacadas
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Estas posiciones tienen alta demanda y necesitamos candidatos calificados de inmediato.
+            Estamos agilizando la selección para estos roles estratégicos. Si cumples con el perfil, tu postulación tendrá revisión prioritaria.
           </p>
         </div>
 
@@ -86,7 +56,7 @@ const UrgentJobs: React.FC<UrgentJobsProps> = ({ data }) => {
                 <div className="flex items-center gap-2 mb-3">
                   <Flame className="w-4 h-4 text-destructive" />
                   <span className="text-xs font-semibold text-destructive uppercase tracking-wide">
-                    Urgente
+                    En Demanda
                   </span>
                 </div>
                 <h3  style={{
