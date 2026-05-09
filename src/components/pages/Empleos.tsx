@@ -11,6 +11,7 @@ import {
   Clock,
   Briefcase,
   AlertCircle,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +46,7 @@ type CategoriaType =
   | "bares"
   | "housekeeping"
   | "fotografos"
+  | "otros"
   | "todos";
 
 const iconMap: Record<string, any> = {
@@ -55,6 +57,7 @@ const iconMap: Record<string, any> = {
   bares: Wine,
   housekeeping: Sparkles,
   fotografos: Camera,
+  otros: HelpCircle,
 };
 
 const EmpleosPage: React.FC<EmpleosPageProps> = ({ empleos = [], error }) => {
@@ -100,7 +103,7 @@ const EmpleosPage: React.FC<EmpleosPageProps> = ({ empleos = [], error }) => {
     slug: e.slug,
     titulo: e.titulo || "Vacante sin título",
     descripcion: e.descripcion || "Sin descripción disponible.",
-    categoria: (e.categoria as CategoriaType) || "housekeeping",
+    categoria: (e.categoria?.toLowerCase() as CategoriaType) || "otros",
     crucero: e.cruiseLine?.nombre || "Varias líneas de cruceros",
     ubicacion: "Internacional",
     tipo: "Tiempo completo",
