@@ -1,0 +1,22 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import PaginaLegal from "@/components/pages/PaginaLegal";
+import { getPoliticasData } from "@/lib/cms";
+
+export const prerender = false;
+
+let data = null;
+let error: string | null = null;
+
+try {
+  data = await getPoliticasData();
+  if (!data) error = "No se pudo cargar la información de la página en este momento.";
+} catch (e) {
+  console.error('Error cargando "Políticas de la Empresa":', e);
+  error = "No se pudo cargar la información de la página en este momento. Por favor, intenta más tarde.";
+}
+---
+
+<Layout title="Políticas de la Empresa">
+  <PaginaLegal data={data} error={error} client:load />
+</Layout>

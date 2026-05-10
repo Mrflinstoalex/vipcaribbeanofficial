@@ -110,6 +110,42 @@ export const getPageInfo = async (slug: string) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PÁGINAS LEGALES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const getTerminosData = async () => {
+  const data = await client.fetch(
+    `*[_type == "paginaTerminos"][0] {
+      titulo,
+      ultimaActualizacion,
+      contenido
+    }`
+  );
+  if (!data) return null;
+  return {
+    titulo: data.titulo ?? "Términos de Servicio",
+    ultimaActualizacion: data.ultimaActualizacion ?? null,
+    contenidoHtml: blocksToHtml(data.contenido ?? []),
+  };
+};
+
+export const getPoliticasData = async () => {
+  const data = await client.fetch(
+    `*[_type == "paginaPoliticas"][0] {
+      titulo,
+      ultimaActualizacion,
+      contenido
+    }`
+  );
+  if (!data) return null;
+  return {
+    titulo: data.titulo ?? "Políticas de la Empresa",
+    ultimaActualizacion: data.ultimaActualizacion ?? null,
+    contenidoHtml: blocksToHtml(data.contenido ?? []),
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CANDIDATOS (resultados de pre-entrevista)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -455,6 +491,34 @@ export const writeClient = createClient({
   apiVersion: "2024-01-01",
   token: import.meta.env.SANITY_API_TOKEN,
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// APLICACIONES WEB (control de duplicados)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Devuelve true si el correo ya tiene una aplicación en los últimos 6 meses. */
+export const checkRecentApplication = async (email: string): Promise<boolean> => {
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const result = await writeClient.fetch(
+    `*[_type == "aplicacionWeb" && email == $email && fechaAplicacion > $sixMonthsAgo][0]._id`,
+    { email, sixMonthsAgo: sixMonthsAgo.toISOString() }
+  );
+  return !!result;
+};
+
+export const createAplicacionWeb = async (data: {
+  email: string;
+  telefono: string;
+  nombre: string;
+  posicion: string;
+}) => {
+  return writeClient.create({
+    _type: "aplicacionWeb",
+    ...data,
+    fechaAplicacion: new Date().toISOString(),
+  });
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CITAS

@@ -22,6 +22,8 @@ const STATIC_ROUTES: { path: string; priority: string; changefreq: string }[] = 
   { path: "/blog", priority: "0.6", changefreq: "weekly" },
   { path: "/faq", priority: "0.5", changefreq: "monthly" },
   { path: "/resultados", priority: "0.4", changefreq: "weekly" },
+  { path: "/terminos-de-servicio", priority: "0.3", changefreq: "yearly" },
+  { path: "/politicas-de-la-empresa", priority: "0.3", changefreq: "yearly" },
 ];
 
 function urlEntry(loc: string, opts: { priority?: string; changefreq?: string; lastmod?: string } = {}) {

@@ -24,7 +24,8 @@
       "Bash(node check_hydration.mjs)",
       "Bash(curl -s http://localhost:4321/sitemap.xml -o /tmp/sitemap.xml)",
       "Bash(curl -s http://localhost:4321/sitemap.xml)",
-      "Bash(curl -s http://localhost:4321/robots.txt)"
+      "Bash(curl -s http://localhost:4321/robots.txt)",
+      "PowerShell(Rename-Item *)"
     ]
   }
 }

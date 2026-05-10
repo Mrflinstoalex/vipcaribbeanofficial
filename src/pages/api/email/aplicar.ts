@@ -1,7 +1,7 @@
 // /api/email/aplicar.ts
 import type { APIRoute } from "astro";
 import { transporter } from "./_mailer";
-import { getEmailTemplate } from "@/lib/cms";
+import { getEmailTemplate, checkRecentApplication, createAplicacionWeb } from "@/lib/cms";
 import { verifyTurnstile } from "./_turnstile";
 
 export const prerender = false;
@@ -69,6 +69,18 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       status: 400,
       headers: JSON_HEADERS,
     });
+  }
+
+  // Verificar aplicación reciente: mismo correo no puede aplicar 2 veces en 6 meses
+  const hasRecent = await checkRecentApplication(email);
+  if (hasRecent) {
+    return new Response(
+      JSON.stringify({
+        message:
+          "Ya existe una aplicación registrada con este correo electrónico en los últimos 6 meses. Por favor espere antes de volver a aplicar.",
+      }),
+      { status: 429, headers: JSON_HEADERS }
+    );
   }
 
   // Validación del CV: tamaño
@@ -186,6 +198,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     subject: finalSubject,
     html: finalHtml,
   });
+
+  // Registrar la aplicación para bloquear reenvíos en los próximos 6 meses
+  await createAplicacionWeb({ email, telefono, nombre, posicion });
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,

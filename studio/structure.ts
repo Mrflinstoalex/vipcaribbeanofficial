@@ -46,6 +46,22 @@ export const structure = (S: StructureBuilder) =>
                     .documentId("paginaQuienesSomos")
                 ),
               S.listItem()
+                .title("📄 Términos de Servicio")
+                .id("paginaTerminos")
+                .child(
+                  S.document()
+                    .schemaType("paginaTerminos")
+                    .documentId("paginaTerminos")
+                ),
+              S.listItem()
+                .title("🔒 Políticas de la Empresa")
+                .id("paginaPoliticas")
+                .child(
+                  S.document()
+                    .schemaType("paginaPoliticas")
+                    .documentId("paginaPoliticas")
+                ),
+              S.listItem()
                 .title("🔻 Footer")
                 .id("footer")
                 .child(
@@ -83,6 +99,10 @@ export const structure = (S: StructureBuilder) =>
             ])
         ),
       S.documentTypeListItem("lineaCrucero").title("🚢 Líneas de Crucero"),
+
+      S.divider(),
+
+      S.documentTypeListItem("aplicacionWeb").title("📨 Aplicaciones Web"),
 
       S.divider(),
 

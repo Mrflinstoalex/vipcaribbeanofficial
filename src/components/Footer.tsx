@@ -132,13 +132,13 @@ const Footer = ({ acf: rawAcf }: { acf: any }) => {
           </p>
           <div className="flex gap-6 text-sm">
             <a
-              href="#"
+              href="/politicas-de-la-empresa"
               className="text-muted-foreground hover:text-primary transition-colors"
             >
-              Política de Privacidad
+              Políticas de la Empresa
             </a>
             <a
-              href="#"
+              href="/terminos-de-servicio"
               className="text-muted-foreground hover:text-primary transition-colors"
             >
               Términos de Servicio
