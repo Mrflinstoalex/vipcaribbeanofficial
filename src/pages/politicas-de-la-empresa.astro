@@ -1,22 +1,36 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import PaginaLegal from "@/components/pages/PaginaLegal";
-import { getPoliticasData } from "@/lib/cms";
+import PoliticasGrid from "@/components/pages/PoliticasGrid";
+import { getPoliticas } from "@/lib/cms";
 
 export const prerender = false;
 
-let data = null;
+let politicas: Awaited<ReturnType<typeof getPoliticas>> = [];
 let error: string | null = null;
 
 try {
-  data = await getPoliticasData();
-  if (!data) error = "No se pudo cargar la información de la página en este momento.";
+  politicas = await getPoliticas();
 } catch (e) {
-  console.error('Error cargando "Políticas de la Empresa":', e);
-  error = "No se pudo cargar la información de la página en este momento. Por favor, intenta más tarde.";
+  console.error('Error cargando Políticas de la Empresa:', e);
+  error = "No se pudo cargar la información. Por favor, intenta más tarde.";
 }
 ---
 
 <Layout title="Políticas de la Empresa">
-  <PaginaLegal data={data} error={error} client:load />
+  <section class="container mx-auto px-4 lg:px-8 pt-28 lg:pt-32 pb-16 max-w-6xl">
+    <div class="mb-10 text-center">
+      <h1 class="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground mb-4">
+        Políticas de la Empresa
+      </h1>
+      <p class="text-muted-foreground text-lg max-w-2xl mx-auto">
+        Conoce las normas y compromisos que guían nuestro trabajo contigo.
+      </p>
+    </div>
+
+    {error ? (
+      <p class="text-center text-muted-foreground py-16">{error}</p>
+    ) : (
+      <PoliticasGrid politicas={politicas} client:load />
+    )}
+  </section>
 </Layout>

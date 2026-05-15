@@ -145,6 +145,25 @@ export const getPoliticasData = async () => {
   };
 };
 
+export const getPoliticas = async () => {
+  const data = await client.fetch(
+    `*[_type == "politica"] | order(orden asc, _createdAt asc) {
+      _id,
+      titulo,
+      resumen,
+      icono,
+      contenido
+    }`
+  );
+  return (data ?? []).map((p: any) => ({
+    _id: p._id as string,
+    titulo: (p.titulo ?? "") as string,
+    resumen: (p.resumen ?? "") as string,
+    icono: (p.icono ?? "") as string,
+    contenidoHtml: blocksToHtml(p.contenido ?? []),
+  }));
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CANDIDATOS (resultados de pre-entrevista)
 // ─────────────────────────────────────────────────────────────────────────────

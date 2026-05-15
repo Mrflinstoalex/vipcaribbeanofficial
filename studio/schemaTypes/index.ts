@@ -4,6 +4,7 @@ import { paginaContacto }      from "./paginaContacto";
 import { paginaQuienesSomos }  from "./paginaQuienesSomos";
 import { paginaTerminos }      from "./paginaTerminos";
 import { paginaPoliticas }     from "./paginaPoliticas";
+import { politica }            from "./politica";
 import { seoGlobal }           from "./seoGlobal";
 import { lineaCrucero }        from "./lineaCrucero";
 import { empleo }              from "./empleo";
@@ -28,6 +29,7 @@ export const schemaTypes = [
   paginaQuienesSomos,
   paginaTerminos,
   paginaPoliticas,
+  politica,
   seoGlobal,
   // Contenido dinámico
   lineaCrucero,

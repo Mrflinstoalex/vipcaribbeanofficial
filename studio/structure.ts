@@ -55,11 +55,8 @@ export const structure = (S: StructureBuilder) =>
                 ),
               S.listItem()
                 .title("🔒 Políticas de la Empresa")
-                .id("paginaPoliticas")
                 .child(
-                  S.document()
-                    .schemaType("paginaPoliticas")
-                    .documentId("paginaPoliticas")
+                  S.documentTypeList("politica").title("Políticas de la Empresa")
                 ),
               S.listItem()
                 .title("🔻 Footer")

@@ -29,7 +29,7 @@ const CTA = ({ data }: { data: CTAProps }) => {
               index === 0 ? (
                 parte
               ) : (
-                <span key={index} className="text-primary">
+                <span key={index} className="text-white">
                   Aventura
                   {parte}
                 </span>

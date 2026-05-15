@@ -25,7 +25,10 @@
       "Bash(curl -s http://localhost:4321/sitemap.xml -o /tmp/sitemap.xml)",
       "Bash(curl -s http://localhost:4321/sitemap.xml)",
       "Bash(curl -s http://localhost:4321/robots.txt)",
-      "PowerShell(Rename-Item *)"
+      "PowerShell(Rename-Item *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\josia\\\\Downloads\\\\vipcaribbeanofficial\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(grep -E \"\\\\\\\\.ts$\")"
     ]
   }
 }
