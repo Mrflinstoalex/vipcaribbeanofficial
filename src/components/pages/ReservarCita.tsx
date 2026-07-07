@@ -429,7 +429,7 @@ export default function ReservarCita() {
                       <br />
                       {format(allowedWednesday, "EEEE d 'de' MMMM, yyyy", { locale: es })}
                       <br />
-                      Horario: 9:00 AM - 12:00 PM
+                      Horario: 9:00 AM - 11:00 AM
                       {loadingBlockedDates || loadingLockedTimes ? (
                         <>
                           <br />
