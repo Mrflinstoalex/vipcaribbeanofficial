@@ -28,7 +28,7 @@ function generarHorasCada5Minutos() {
   inicio.setHours(9, 0, 0, 0); // 9:00 AM
 
   const fin = new Date();
-  fin.setHours(12, 0, 0, 0); // 12:00 PM
+  fin.setHours(11, 0, 0, 0); // 11:00 AM
 
   let current = new Date(inicio);
   while (current <= fin) {
